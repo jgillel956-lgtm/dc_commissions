@@ -1,0 +1,4 @@
+﻿id,company_id,interchange_company,interchange_amount,invoice_number,payment_date,transaction_period_start,transaction_period_end,transaction_count,interchange_rate,notes,posted_date,active,created_at,updated_at
+1,23,Transcard,"$2,500.00",TC-2024-12-001,31 Dec 2024 00:00:00,01 Dec 2024 00:00:00,31 Dec 2024 00:00:00,850,0.0175,December 2024 interchange for Company 23,31 Dec 2024 00:00:00,TRUE,31 Dec 2024 00:00:00,31 Dec 2024 00:00:00
+2,15,Transcard,"$1,200.00",TC-2024-12-001,31 Dec 2024 00:00:00,01 Dec 2024 00:00:00,31 Dec 2024 00:00:00,400,0.0175,December 2024 interchange for Company 15,31 Dec 2024 00:00:00,TRUE,31 Dec 2024 00:00:00,31 Dec 2024 00:00:00
+3,8,Transcard,$800.00,TC-2024-12-001,31 Dec 2024 00:00:00,01 Dec 2024 00:00:00,31 Dec 2024 00:00:00,300,0.0175,December 2024 interchange for Company 8,31 Dec 2024 00:00:00,TRUE,31 Dec 2024 00:00:00,31 Dec 2024 00:00:00

@@ -1,0 +1,2 @@
+﻿id,company_id,payment_method_id,base_fee_upcharge,multiplier_upcharge,max_fee_upcharge,effective_start_date,effective_end_date,active,created_at,updated_at
+1,40,1,2,0.005,5,01/01/2024,,TRUE,28/06/2025,28/06/2025

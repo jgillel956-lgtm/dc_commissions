@@ -1,0 +1,10 @@
+﻿id,payment_method
+1,ACH
+2,Postal Check
+3,Virtual Card
+4,Instant Deposit
+5,Digital Check
+6,Venmo
+7,Paypal
+998,VC Interchange
+999,Interest Income

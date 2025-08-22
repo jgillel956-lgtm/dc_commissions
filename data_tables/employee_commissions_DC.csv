@@ -1,0 +1,5 @@
+﻿employee_name,employee_id,payment_method_id,id,company_id,commission_amount,commission_percentage,effective_start_date,effective_end_date,active,description,created_at,updated_at
+Skip,123,,1,,$0.00,20,03 Dec 2024 00:00:00,,Yes,Global commission - all payment methods and companies,29/06/2025,29/06/2025
+Cameron,222,,2,,$0.00,5,03 Dec 2024 00:00:00,,Yes,Global commission - all payment methods and companies,29/06/2025,29/06/2025
+Skip,123,998,,,,,,,,,,
+Skip,123,999,3,,,20,03 Dec 2024 00:00:00,,Yes,Global commission - all payment methods and companies,,

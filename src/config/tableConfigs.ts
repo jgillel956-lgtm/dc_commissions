@@ -1,0 +1,573 @@
+import { Users, Package, FileText, CreditCard, Building, DollarSign, TrendingUp, Users2 } from 'lucide-react';
+import * as yup from 'yup';
+
+// Field configuration interface
+export interface FieldConfig {
+  key: string;
+  label: string;
+  type: 'text' | 'email' | 'tel' | 'number' | 'date' | 'select' | 'currency' | 'percentage' | 'toggle';
+  required: boolean;
+  options?: { value: string | number; label: string }[];
+  lookupTable?: string;
+  lookupValueField?: string;
+  lookupDisplayField?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  placeholder?: string;
+}
+
+// Table configuration interface
+export interface TableConfig {
+  name: string;
+  icon: any;
+  fields: FieldConfig[];
+  displayColumns: string[];
+  tableName: string; // Zoho Analytics table name
+}
+
+// Validation schemas
+export const companyUpchargeFeeSchema = yup.object({
+  company_id: yup.number().required('Company is required'),
+  payment_method_id: yup.number().required('Payment method is required'),
+  base_fee_upcharge: yup.number().min(0, 'Base fee must be positive').required('Base fee is required'),
+  multiplier_upcharge: yup.number().min(0, 'Multiplier must be positive').max(1, 'Multiplier must be between 0 and 1').required('Multiplier is required'),
+  max_fee_upcharge: yup.number().min(0, 'Max fee must be positive').required('Max fee is required'),
+  effective_start_date: yup.date().required('Start date is required'),
+  effective_end_date: yup.date().nullable(),
+  active: yup.boolean().required('Active status is required')
+});
+
+export const employeeCommissionSchema = yup.object({
+  employee_name: yup.string().required('Employee name is required'),
+  employee_id: yup.number().required('Employee ID is required'),
+  payment_method_id: yup.number().nullable(),
+  company_id: yup.number().nullable(),
+  commission_amount: yup.number().min(0, 'Commission amount must be positive'),
+  commission_percentage: yup.number().min(0, 'Commission percentage must be positive').max(100, 'Commission percentage cannot exceed 100%').required('Commission percentage is required'),
+  effective_start_date: yup.date().required('Start date is required'),
+  effective_end_date: yup.date().nullable(),
+  active: yup.boolean().required('Active status is required'),
+  description: yup.string().required('Description is required')
+});
+
+export const monthlyInterchangeIncomeSchema = yup.object({
+  company_id: yup.number().required('Company is required'),
+  interchange_company: yup.string().required('Interchange company is required'),
+  interchange_amount: yup.number().min(0, 'Interchange amount must be positive').required('Interchange amount is required'),
+  invoice_number: yup.string().required('Invoice number is required'),
+  payment_date: yup.date().required('Payment date is required'),
+  transaction_period_start: yup.date().required('Transaction period start is required'),
+  transaction_period_end: yup.date().required('Transaction period end is required'),
+  transaction_count: yup.number().min(0, 'Transaction count must be positive').required('Transaction count is required'),
+  interchange_rate: yup.number().min(0, 'Interchange rate must be positive').required('Interchange rate is required'),
+  notes: yup.string().required('Notes are required'),
+  posted_date: yup.date().required('Posted date is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
+export const monthlyInterestRevenueSchema = yup.object({
+  company_id: yup.number().required('Company is required'),
+  interest_period_start: yup.date().required('Interest period start is required'),
+  interest_period_end: yup.date().required('Interest period end is required'),
+  interest_amount: yup.number().min(0, 'Interest amount must be positive').required('Interest amount is required'),
+  account_balance: yup.number().min(0, 'Account balance must be positive').required('Account balance is required'),
+  interest_rate: yup.number().min(0, 'Interest rate must be positive').required('Interest rate is required'),
+  bank_account_name: yup.string().required('Bank account name is required'),
+  notes: yup.string().nullable(),
+  posted_date: yup.date().required('Posted date is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
+export const referralPartnerSchema = yup.object({
+  partner_name: yup.string().required('Partner name is required'),
+  partner_type: yup.string().required('Partner type is required'),
+  contact_email: yup.string().email('Invalid email format').nullable(),
+  contact_phone: yup.string().nullable(),
+  commission_percentage: yup.number().min(0, 'Commission percentage must be positive').max(100, 'Commission percentage cannot exceed 100%').required('Commission percentage is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
+// Table configurations
+export const tableConfigs: Record<string, TableConfig> = {
+  company_upcharge_fees_DC: {
+    name: 'Company Upcharge Fees',
+    icon: DollarSign,
+    tableName: 'company_upcharge_fees_DC',
+    fields: [
+      {
+        key: 'company_id',
+        label: 'Company',
+        type: 'select',
+        required: true,
+        lookupTable: 'insurance_companies_DC',
+        lookupValueField: 'id',
+        lookupDisplayField: 'company'
+      },
+      {
+        key: 'payment_method_id',
+        label: 'Payment Method',
+        type: 'select',
+        required: true,
+        lookupTable: 'payment_modalities',
+        lookupValueField: 'id',
+        lookupDisplayField: 'payment_method'
+      },
+      {
+        key: 'base_fee_upcharge',
+        label: 'Base Fee Upcharge',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'multiplier_upcharge',
+        label: 'Multiplier Upcharge',
+        type: 'percentage',
+        required: true,
+        min: 0,
+        max: 1,
+        step: 0.001,
+        placeholder: '0.000'
+      },
+      {
+        key: 'max_fee_upcharge',
+        label: 'Max Fee Upcharge',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'effective_start_date',
+        label: 'Effective Start Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'effective_end_date',
+        label: 'Effective End Date',
+        type: 'date',
+        required: false
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['company_name', 'payment_method_name', 'base_fee_upcharge', 'multiplier_upcharge', 'max_fee_upcharge', 'effective_start_date', 'effective_end_date', 'active']
+  },
+
+  employee_commissions_DC: {
+    name: 'Employee Commissions',
+    icon: Users,
+    tableName: 'employee_commissions_DC',
+    fields: [
+      {
+        key: 'employee_name',
+        label: 'Employee Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter employee name'
+      },
+      {
+        key: 'employee_id',
+        label: 'Employee ID',
+        type: 'number',
+        required: true,
+        placeholder: 'Enter employee ID'
+      },
+      {
+        key: 'payment_method_id',
+        label: 'Payment Method',
+        type: 'select',
+        required: false,
+        lookupTable: 'payment_modalities',
+        lookupValueField: 'id',
+        lookupDisplayField: 'payment_method'
+      },
+      {
+        key: 'company_id',
+        label: 'Company',
+        type: 'select',
+        required: false,
+        lookupTable: 'insurance_companies_DC',
+        lookupValueField: 'id',
+        lookupDisplayField: 'company'
+      },
+      {
+        key: 'commission_amount',
+        label: 'Commission Amount',
+        type: 'currency',
+        required: false,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'commission_percentage',
+        label: 'Commission Percentage',
+        type: 'percentage',
+        required: true,
+        min: 0,
+        max: 100,
+        step: 0.1,
+        placeholder: '0.0'
+      },
+      {
+        key: 'effective_start_date',
+        label: 'Effective Start Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'effective_end_date',
+        label: 'Effective End Date',
+        type: 'date',
+        required: false
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      },
+      {
+        key: 'description',
+        label: 'Description',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter description'
+      }
+    ],
+    displayColumns: ['employee_name', 'employee_id', 'payment_method_name', 'company_name', 'commission_percentage', 'effective_start_date', 'active']
+  },
+
+  monthly_interchange_income_DC: {
+    name: 'Monthly Interchange Income',
+    icon: TrendingUp,
+    tableName: 'monthly_interchange_income_DC',
+    fields: [
+      {
+        key: 'company_id',
+        label: 'Company',
+        type: 'select',
+        required: true,
+        lookupTable: 'insurance_companies_DC',
+        lookupValueField: 'id',
+        lookupDisplayField: 'company'
+      },
+      {
+        key: 'interchange_company',
+        label: 'Interchange Company',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter interchange company name'
+      },
+      {
+        key: 'interchange_amount',
+        label: 'Interchange Amount',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'invoice_number',
+        label: 'Invoice Number',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter invoice number'
+      },
+      {
+        key: 'payment_date',
+        label: 'Payment Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_period_start',
+        label: 'Transaction Period Start',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_period_end',
+        label: 'Transaction Period End',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_count',
+        label: 'Transaction Count',
+        type: 'number',
+        required: true,
+        min: 0,
+        placeholder: 'Enter transaction count'
+      },
+      {
+        key: 'interchange_rate',
+        label: 'Interchange Rate',
+        type: 'percentage',
+        required: true,
+        min: 0,
+        step: 0.0001,
+        placeholder: '0.0000'
+      },
+      {
+        key: 'notes',
+        label: 'Notes',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter notes'
+      },
+      {
+        key: 'posted_date',
+        label: 'Posted Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active']
+  },
+
+  monthly_interest_revenue_DC: {
+    name: 'Monthly Interest Revenue',
+    icon: Building,
+    tableName: 'monthly_interest_revenue_DC',
+    fields: [
+      {
+        key: 'company_id',
+        label: 'Company',
+        type: 'select',
+        required: true,
+        lookupTable: 'insurance_companies_DC',
+        lookupValueField: 'id',
+        lookupDisplayField: 'company'
+      },
+      {
+        key: 'interest_period_start',
+        label: 'Interest Period Start',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'interest_period_end',
+        label: 'Interest Period End',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'interest_amount',
+        label: 'Interest Amount',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'account_balance',
+        label: 'Account Balance',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'interest_rate',
+        label: 'Interest Rate',
+        type: 'percentage',
+        required: true,
+        min: 0,
+        step: 0.0001,
+        placeholder: '0.0000'
+      },
+      {
+        key: 'bank_account_name',
+        label: 'Bank Account Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter bank account name'
+      },
+      {
+        key: 'notes',
+        label: 'Notes',
+        type: 'text',
+        required: false,
+        placeholder: 'Enter notes (optional)'
+      },
+      {
+        key: 'posted_date',
+        label: 'Posted Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['company_name', 'interest_period_start', 'interest_period_end', 'interest_amount', 'account_balance', 'interest_rate', 'bank_account_name', 'active']
+  },
+
+  referral_partners_DC: {
+    name: 'Referral Partners',
+    icon: Users2,
+    tableName: 'referral_partners_DC',
+    fields: [
+      {
+        key: 'partner_name',
+        label: 'Partner Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter partner name'
+      },
+      {
+        key: 'partner_type',
+        label: 'Partner Type',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter partner type'
+      },
+      {
+        key: 'contact_email',
+        label: 'Contact Email',
+        type: 'email',
+        required: false,
+        placeholder: 'Enter contact email'
+      },
+      {
+        key: 'contact_phone',
+        label: 'Contact Phone',
+        type: 'tel',
+        required: false,
+        placeholder: 'Enter contact phone'
+      },
+      {
+        key: 'commission_percentage',
+        label: 'Commission Percentage',
+        type: 'percentage',
+        required: true,
+        min: 0,
+        max: 100,
+        step: 0.1,
+        placeholder: '0.0'
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['partner_name', 'partner_type', 'contact_email', 'contact_phone', 'commission_percentage', 'active']
+  }
+};
+
+// Status colors for badges
+export const statusColors: Record<string, string> = {
+  Active: 'bg-green-100 text-green-800',
+  Inactive: 'bg-red-100 text-red-800',
+  Pending: 'bg-yellow-100 text-yellow-800',
+  Processing: 'bg-blue-100 text-blue-800',
+  Shipped: 'bg-purple-100 text-purple-800',
+  Delivered: 'bg-green-100 text-green-800',
+  Draft: 'bg-gray-100 text-gray-800',
+  Sent: 'bg-blue-100 text-blue-800',
+  Paid: 'bg-green-100 text-green-800',
+  Overdue: 'bg-red-100 text-red-800',
+  true: 'bg-green-100 text-green-800',
+  false: 'bg-red-100 text-red-800'
+};
+
+// Column formatters
+export const columnFormatters: Record<string, (value: any) => string> = {
+  revenue: (value: number) => `$${value.toLocaleString()}`,
+  price: (value: number) => `$${value.toLocaleString()}`,
+  total_amount: (value: number) => `$${value.toLocaleString()}`,
+  amount: (value: number) => `$${value.toLocaleString()}`,
+  base_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
+  max_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
+  multiplier_upcharge: (value: number) => `${(value * 100).toFixed(3)}%`,
+  commission_amount: (value: number) => `$${value.toLocaleString()}`,
+  commission_percentage: (value: number) => `${value.toFixed(1)}%`,
+  interchange_amount: (value: number) => `$${value.toLocaleString()}`,
+  interchange_rate: (value: number) => `${(value * 100).toFixed(4)}%`,
+  interest_amount: (value: number) => `$${value.toLocaleString()}`,
+  account_balance: (value: number) => `$${value.toLocaleString()}`,
+  interest_rate: (value: number) => `${(value * 100).toFixed(4)}%`,
+  due_date: (value: string) => new Date(value).toLocaleDateString(),
+  created_at: (value: string) => new Date(value).toLocaleDateString(),
+  updated_at: (value: string) => new Date(value).toLocaleDateString(),
+  effective_start_date: (value: string) => new Date(value).toLocaleDateString(),
+  effective_end_date: (value: string) => value ? new Date(value).toLocaleDateString() : '-',
+  payment_date: (value: string) => new Date(value).toLocaleDateString(),
+  transaction_period_start: (value: string) => new Date(value).toLocaleDateString(),
+  transaction_period_end: (value: string) => new Date(value).toLocaleDateString(),
+  posted_date: (value: string) => new Date(value).toLocaleDateString(),
+  interest_period_start: (value: string) => new Date(value).toLocaleDateString(),
+  interest_period_end: (value: string) => new Date(value).toLocaleDateString()
+};
+
+// Validation schemas mapping
+export const validationSchemas: Record<string, any> = {
+  company_upcharge_fees_DC: companyUpchargeFeeSchema,
+  employee_commissions_DC: employeeCommissionSchema,
+  monthly_interchange_income_DC: monthlyInterchangeIncomeSchema,
+  monthly_interest_revenue_DC: monthlyInterestRevenueSchema,
+  referral_partners_DC: referralPartnerSchema
+};
+
+// Default sort configurations
+export const defaultSorts = {
+  company_upcharge_fees_DC: { field: 'effective_start_date', order: 'desc' as const },
+  employee_commissions_DC: { field: 'employee_name', order: 'asc' as const },
+  monthly_interchange_income_DC: { field: 'payment_date', order: 'desc' as const },
+  monthly_interest_revenue_DC: { field: 'posted_date', order: 'desc' as const },
+  referral_partners_DC: { field: 'partner_name', order: 'asc' as const },
+};
+
+// Export configurations
+export const exportConfigs = {
+  company_upcharge_fees_DC: {
+    filename: 'company-upcharge-fees-export',
+    columns: ['company_name', 'payment_method_name', 'base_fee_upcharge', 'multiplier_upcharge', 'max_fee_upcharge', 'effective_start_date', 'effective_end_date', 'active'],
+    headers: ['Company', 'Payment Method', 'Base Fee Upcharge', 'Multiplier Upcharge', 'Max Fee Upcharge', 'Effective Start Date', 'Effective End Date', 'Active'],
+  },
+  employee_commissions_DC: {
+    filename: 'employee-commissions-export',
+    columns: ['employee_name', 'employee_id', 'payment_method_name', 'company_name', 'commission_percentage', 'effective_start_date', 'active'],
+    headers: ['Employee Name', 'Employee ID', 'Payment Method', 'Company', 'Commission Percentage', 'Effective Start Date', 'Active'],
+  },
+  monthly_interchange_income_DC: {
+    filename: 'monthly-interchange-income-export',
+    columns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active'],
+    headers: ['Company', 'Interchange Company', 'Interchange Amount', 'Invoice Number', 'Payment Date', 'Transaction Count', 'Interchange Rate', 'Active'],
+  },
+  monthly_interest_revenue_DC: {
+    filename: 'monthly-interest-revenue-export',
+    columns: ['company_name', 'interest_period_start', 'interest_period_end', 'interest_amount', 'account_balance', 'interest_rate', 'bank_account_name', 'active'],
+    headers: ['Company', 'Interest Period Start', 'Interest Period End', 'Interest Amount', 'Account Balance', 'Interest Rate', 'Bank Account Name', 'Active'],
+  },
+  referral_partners_DC: {
+    filename: 'referral-partners-export',
+    columns: ['partner_name', 'partner_type', 'contact_email', 'contact_phone', 'commission_percentage', 'active'],
+    headers: ['Partner Name', 'Partner Type', 'Contact Email', 'Contact Phone', 'Commission Percentage', 'Active'],
+  },
+};
