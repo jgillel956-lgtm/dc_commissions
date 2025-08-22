@@ -1,6 +1,7 @@
-import React from 'react';
-import { BarChart3, Download, User, Bell } from 'lucide-react';
+import React, { useState } from 'react';
+import { BarChart3, Download, User, Bell, History } from 'lucide-react';
 import Button from '../ui/Button';
+import AuditLogViewer from '../audit/AuditLogViewer';
 
 interface HeaderProps {
   onExport?: (tableName: string, format: 'csv' | 'excel') => void;
@@ -13,6 +14,8 @@ const Header: React.FC<HeaderProps> = ({
   exportLoading = false,
   currentTable,
 }) => {
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
+
   return (
     <header className="bg-white border-b border-slate-200 px-8 py-6 shadow-sm">
       <div className="flex items-center justify-between">
@@ -31,6 +34,16 @@ const Header: React.FC<HeaderProps> = ({
         
         {/* Actions */}
         <div className="flex items-center space-x-4">
+          {/* Audit Logs Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<History className="w-4 h-4" />}
+            onClick={() => setShowAuditLogs(true)}
+          >
+            Audit Logs
+          </Button>
+          
           {/* Export Button */}
           {onExport && currentTable && (
             <Button
@@ -62,6 +75,13 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Audit Log Viewer Modal */}
+      <AuditLogViewer
+        isOpen={showAuditLogs}
+        onClose={() => setShowAuditLogs(false)}
+        tableName={currentTable}
+      />
     </header>
   );
 };

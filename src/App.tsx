@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Layout from './components/layout/Layout';
 import TableView from './pages/TableView';
+import { UserProvider } from './contexts/UserContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,14 +38,16 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Layout activeTable={activeTable} onTableChange={handleTableChange} onExport={handleExport}>
-        <TableView activeTable={activeTable} />
-      </Layout>
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </QueryClientProvider>
+    <UserProvider>
+      <QueryClientProvider client={queryClient}>
+        <Layout activeTable={activeTable} onTableChange={handleTableChange} onExport={handleExport}>
+          <TableView activeTable={activeTable} />
+        </Layout>
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </QueryClientProvider>
+    </UserProvider>
   );
 }
 

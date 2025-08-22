@@ -76,7 +76,11 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     if (!editingRecord) return;
     
     try {
-      await update.mutateAsync({ id: editingRecord.id, data: values });
+      await update.mutateAsync({ 
+        id: editingRecord.id, 
+        data: values,
+        oldData: editingRecord // Pass old data for audit logging
+      });
       setShowEditModal(false);
       setEditingRecord(null);
     } catch (error) {
@@ -89,7 +93,10 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     if (!deletingRecord) return;
     
     try {
-      await deleteMutation.mutateAsync(deletingRecord.id);
+      await deleteMutation.mutateAsync({ 
+        id: deletingRecord.id,
+        deletedData: deletingRecord // Pass deleted data for audit logging
+      });
       setShowDeleteConfirm(false);
       setDeletingRecord(null);
     } catch (error) {

@@ -13,7 +13,28 @@ export const useCreateRecord = <T>(tableName: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (data: any) => zohoApi.createRecord<T>(tableName, data),
+    mutationFn: async (data: any) => {
+      const result = await zohoApi.createRecord<T>(tableName, data);
+      
+      // Log the create operation for audit
+      try {
+        const { auditLogger } = await import('../services/auditLogger');
+        const { useUser } = await import('../contexts/UserContext');
+        // Note: In a real implementation, you'd get the user from context
+        // For now, we'll use a placeholder
+        await auditLogger.logCreate(
+          'current_user_id', // Replace with actual user ID from context
+          'Current User', // Replace with actual user name from context
+          tableName,
+          (result as any).id || 'unknown',
+          data
+        );
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+      
+      return result;
+    },
     onSuccess: () => {
       // Invalidate and refetch the records list
       queryClient.invalidateQueries({ queryKey: [tableName, 'records'] });
@@ -30,8 +51,28 @@ export const useUpdateRecord = <T>(tableName: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => 
-      zohoApi.updateRecord<T>(tableName, id, data),
+    mutationFn: async ({ id, data, oldData }: { id: string; data: any; oldData?: any }) => {
+      const result = await zohoApi.updateRecord<T>(tableName, id, data);
+      
+      // Log the update operation for audit
+      if (oldData) {
+        try {
+          const { auditLogger } = await import('../services/auditLogger');
+          await auditLogger.logUpdate(
+            'current_user_id', // Replace with actual user ID from context
+            'Current User', // Replace with actual user name from context
+            tableName,
+            id,
+            oldData,
+            data
+          );
+        } catch (error) {
+          console.error('Audit logging failed:', error);
+        }
+      }
+      
+      return result;
+    },
     onSuccess: (updatedRecord, { id }) => {
       // Update the specific record in cache
       queryClient.setQueryData([tableName, 'record', id], updatedRecord);
@@ -51,10 +92,30 @@ export const useDeleteRecord = (tableName: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => zohoApi.deleteRecord(tableName, id),
-    onSuccess: (_, deletedId) => {
+    mutationFn: async ({ id, deletedData }: { id: string; deletedData?: any }) => {
+      const result = await zohoApi.deleteRecord(tableName, id);
+      
+      // Log the delete operation for audit
+      if (deletedData) {
+        try {
+          const { auditLogger } = await import('../services/auditLogger');
+          await auditLogger.logDelete(
+            'current_user_id', // Replace with actual user ID from context
+            'Current User', // Replace with actual user name from context
+            tableName,
+            id,
+            deletedData
+          );
+        } catch (error) {
+          console.error('Audit logging failed:', error);
+        }
+      }
+      
+      return result;
+    },
+    onSuccess: (_, { id }) => {
       // Remove the specific record from cache
-      queryClient.removeQueries({ queryKey: [tableName, 'record', deletedId] });
+      queryClient.removeQueries({ queryKey: [tableName, 'record', id] });
       
       // Invalidate and refetch the records list
       queryClient.invalidateQueries({ queryKey: [tableName, 'records'] });
