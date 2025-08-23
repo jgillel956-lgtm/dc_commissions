@@ -5,10 +5,10 @@ const axios = require('axios');
 
 // Configuration - replace with your actual values
 const config = {
-  workspaceId: process.env.REACT_APP_ZOHO_WORKSPACE_ID || 'your_workspace_id',
-  clientId: process.env.REACT_APP_ZOHO_CLIENT_ID || 'your_client_id',
-  clientSecret: process.env.REACT_APP_ZOHO_CLIENT_SECRET || 'your_client_secret',
-  refreshToken: process.env.REACT_APP_ZOHO_REFRESH_TOKEN || 'your_refresh_token'
+  workspaceId: '2103833000004345334',
+  clientId: '1000.5WZNDB7SE7ZVSFLC6OTRH792H5LV0R',
+  clientSecret: '756614cae6d89b32e959286ebed5f96db5154f7205',
+  refreshToken: '1000.9e134cb7fdb1dc8c01fb6c1cf1205d57.6b2f8b0791d30d1efb8c9ae8dfb56722'
 };
 
 // Tables to test
@@ -25,7 +25,7 @@ const tables = [
 class ZohoTestAPI {
   constructor() {
     this.accessToken = null;
-    this.baseURL = 'https://analyticsapi.zoho.com/api/v2';
+    this.baseURL = 'https://analyticsapi.zoho.com/restapi/v2';
   }
 
   async getAccessToken() {
@@ -36,18 +36,27 @@ class ZohoTestAPI {
     try {
       console.log('🔐 Getting access token...');
       
-      const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', {
-        refresh_token: config.refreshToken,
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        grant_type: 'refresh_token'
+      // Use URLSearchParams for proper form encoding
+      const params = new URLSearchParams();
+      params.append('refresh_token', config.refreshToken);
+      params.append('client_id', config.clientId);
+      params.append('client_secret', config.clientSecret);
+      params.append('grant_type', 'refresh_token');
+      
+      const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
 
       this.accessToken = response.data.access_token;
       console.log('✅ Access token obtained successfully');
       return this.accessToken;
     } catch (error) {
-      console.error('❌ Failed to get access token:', error.response?.data || error.message);
+      console.error('❌ Failed to get access token:', error.response?.status || error.response?.statusText || error.message);
+      if (error.response?.data) {
+        console.error('Response data:', typeof error.response.data === 'string' ? 'HTML Error Page' : error.response.data);
+      }
       throw error;
     }
   }
@@ -78,9 +87,10 @@ class ZohoTestAPI {
     console.log('\n🏢 Testing workspace connection...');
     
     try {
-      const response = await this.makeRequest('/workspaces');
+      // Test by getting workspace views (tables)
+      const response = await this.makeRequest(`/workspaces/${config.workspaceId}/views`);
       console.log('✅ Workspace connection successful');
-      console.log('📊 Workspace info:', response.data);
+      console.log(`📊 Found ${response.data?.length || 0} views/tables in workspace`);
       return true;
     } catch (error) {
       console.error('❌ Workspace connection failed');
@@ -95,6 +105,7 @@ class ZohoTestAPI {
       // Test getting table metadata
       console.log('  📝 Getting table metadata...');
       const metadataResponse = await this.makeRequest('/tables/metadata', {
+        action: 'get',
         ZOHO_TABLE_NAME: tableName
       });
       
@@ -107,9 +118,11 @@ class ZohoTestAPI {
 
       // Test getting records
       console.log('  📊 Getting table records...');
-      const recordsResponse = await this.makeRequest('/tables', {
+      const recordsResponse = await this.makeRequest('/data', {
+        action: 'export',
         ZOHO_TABLE_NAME: tableName,
-        ZOHO_PER_PAGE: 5
+        ZOHO_MAX_ROWS: 5,
+        ZOHO_OUTPUT_FORMAT: 'JSON'
       });
       
       if (recordsResponse.status.code === 0) {
@@ -282,17 +295,6 @@ async function runTests() {
   }
   
   console.log('\n🎉 Test completed!');
-}
-
-// Check if required environment variables are set
-const requiredVars = ['REACT_APP_ZOHO_WORKSPACE_ID', 'REACT_APP_ZOHO_CLIENT_ID', 'REACT_APP_ZOHO_CLIENT_SECRET', 'REACT_APP_ZOHO_REFRESH_TOKEN'];
-const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  console.log('❌ Missing required environment variables:');
-  missingVars.forEach(varName => console.log(`  - ${varName}`));
-  console.log('\nPlease set these variables before running the test.');
-  process.exit(1);
 }
 
 // Run the tests

@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Layout from './components/layout/Layout';
 import TableView from './pages/TableView';
 import { UserProvider } from './contexts/UserContext';
+
+// Lazy load the devtools to prevent chunk loading issues
+const ReactQueryDevtools = lazy(() =>
+  import('@tanstack/react-query-devtools').then((module) => ({
+    default: module.ReactQueryDevtools,
+  }))
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,8 +49,11 @@ function App() {
         <Layout activeTable={activeTable} onTableChange={handleTableChange} onExport={handleExport}>
           <TableView activeTable={activeTable} />
         </Layout>
-        {process.env.NODE_ENV === 'development' && (
-          <ReactQueryDevtools initialIsOpen={false} />
+        {/* Temporarily disabled to fix chunk loading issue */}
+        {false && process.env.NODE_ENV === 'development' && (
+          <Suspense fallback={null}>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </Suspense>
         )}
       </QueryClientProvider>
     </UserProvider>

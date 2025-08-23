@@ -24,6 +24,7 @@ export interface TableConfig {
   fields: FieldConfig[];
   displayColumns: string[];
   tableName: string; // Zoho Analytics table name
+  tableId: string; // Zoho Analytics table ID
 }
 
 // Validation schemas
@@ -94,6 +95,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     name: 'Company Upcharge Fees',
     icon: DollarSign,
     tableName: 'company_upcharge_fees_DC',
+    tableId: '2103833000016814240',
     fields: [
       {
         key: 'company_id',
@@ -167,6 +169,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     name: 'Employee Commissions',
     icon: Users,
     tableName: 'employee_commissions_DC',
+    tableId: '2103833000016814379',
     fields: [
       {
         key: 'employee_name',
@@ -252,6 +255,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     name: 'Monthly Interchange Income',
     icon: TrendingUp,
     tableName: 'monthly_interchange_income_DC',
+    tableId: '2103833000018129022',
     fields: [
       {
         key: 'company_id',
@@ -347,6 +351,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     name: 'Monthly Interest Revenue',
     icon: Building,
     tableName: 'monthly_interest_revenue_DC',
+    tableId: '2103833000016914505',
     fields: [
       {
         key: 'company_id',
@@ -430,6 +435,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     name: 'Referral Partners',
     icon: Users2,
     tableName: 'referral_partners_DC',
+    tableId: '2103833000016814002',
     fields: [
       {
         key: 'partner_name',
@@ -477,6 +483,102 @@ export const tableConfigs: Record<string, TableConfig> = {
       }
     ],
     displayColumns: ['partner_name', 'partner_type', 'contact_email', 'contact_phone', 'commission_percentage', 'active']
+  },
+
+  insurance_companies_DC: {
+    name: 'Insurance Companies',
+    icon: Building,
+    tableName: 'insurance_companies_DC',
+    tableId: '2103833000004379120',
+    fields: [
+      {
+        key: 'company',
+        label: 'Company Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter company name'
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['company', 'active']
+  },
+
+  vendor_costs_DC: {
+    name: 'Vendor Costs',
+    icon: DollarSign,
+    tableName: 'vendor_costs_DC',
+    tableId: '2103833000016817002',
+    fields: [
+      {
+        key: 'vendor_name',
+        label: 'Vendor Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter vendor name'
+      },
+      {
+        key: 'cost_type',
+        label: 'Cost Type',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter cost type'
+      },
+      {
+        key: 'amount',
+        label: 'Amount',
+        type: 'currency',
+        required: true,
+        placeholder: '0.00'
+      },
+      {
+        key: 'date',
+        label: 'Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['vendor_name', 'cost_type', 'amount', 'date', 'active']
+  },
+
+  payment_modalities: {
+    name: 'Payment Modalities',
+    icon: CreditCard,
+    tableName: 'payment_modalities',
+    tableId: '2103833000011978002',
+    fields: [
+      {
+        key: 'modality_name',
+        label: 'Modality Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter modality name'
+      },
+      {
+        key: 'description',
+        label: 'Description',
+        type: 'text',
+        required: false,
+        placeholder: 'Enter description'
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['modality_name', 'description', 'active']
   }
 };
 

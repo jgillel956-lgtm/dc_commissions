@@ -1,11 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  customersApi, 
-  productsApi, 
-  ordersApi, 
-  invoicesApi,
-  zohoApi 
-} from '../services/zohoApi';
+import { zohoApi } from '../services/zohoApi';
 import { Customer, Product, Order, Invoice, ApiError } from '../services/apiTypes';
 
 // Generic mutation hook for creating records
@@ -163,25 +157,26 @@ export const useBulkUpdate = <T>(tableName: string) => {
   });
 };
 
-export const useBulkDelete = (tableName: string) => {
-  const queryClient = useQueryClient();
+// Bulk delete hook - disabled until API method is available
+// export const useBulkDelete = (tableName: string) => {
+//   const queryClient = useQueryClient();
   
-  return useMutation({
-    mutationFn: (ids: string[]) => zohoApi.bulkDelete(tableName, ids),
-    onSuccess: (_, deletedIds) => {
-      // Remove each record from cache
-      deletedIds.forEach(id => {
-        queryClient.removeQueries({ queryKey: [tableName, 'record', id] });
-      });
+//   return useMutation({
+//     mutationFn: (ids: string[]) => zohoApi.bulkDelete(tableName, ids),
+//     onSuccess: (_, deletedIds) => {
+//       // Remove each record from cache
+//       deletedIds.forEach(id => {
+//         queryClient.removeQueries({ queryKey: [tableName, 'record', id] });
+//       });
       
-      queryClient.invalidateQueries({ queryKey: [tableName, 'records'] });
-      queryClient.invalidateQueries({ queryKey: [tableName, 'infinite-records'] });
-    },
-    onError: (error: ApiError) => {
-      console.error(`Error bulk deleting ${tableName} records:`, error);
-    },
-  });
-};
+//       queryClient.invalidateQueries({ queryKey: [tableName, 'records'] });
+//       queryClient.invalidateQueries({ queryKey: [tableName, 'infinite-records'] });
+//     },
+//     onError: (error: ApiError) => {
+//       console.error(`Error bulk deleting ${tableName} records:`, error);
+//     },
+//   });
+// };
 
 // Export mutation hook
 export const useExportRecords = (tableName: string) => {
@@ -215,9 +210,9 @@ export const useBulkUpdateCustomers = () => {
   return useBulkUpdate<Customer>('customers');
 };
 
-export const useBulkDeleteCustomers = () => {
-  return useBulkDelete('customers');
-};
+// export const useBulkDeleteCustomers = () => {
+//   return useBulkDelete('customers');
+// };
 
 export const useExportCustomers = () => {
   return useExportRecords('customers');
@@ -244,9 +239,9 @@ export const useBulkUpdateProducts = () => {
   return useBulkUpdate<Product>('products');
 };
 
-export const useBulkDeleteProducts = () => {
-  return useBulkDelete('products');
-};
+// export const useBulkDeleteProducts = () => {
+//   return useBulkDelete('products');
+// };
 
 export const useExportProducts = () => {
   return useExportRecords('products');
@@ -273,9 +268,9 @@ export const useBulkUpdateOrders = () => {
   return useBulkUpdate<Order>('orders');
 };
 
-export const useBulkDeleteOrders = () => {
-  return useBulkDelete('orders');
-};
+// export const useBulkDeleteOrders = () => {
+//   return useBulkDelete('orders');
+// };
 
 export const useExportOrders = () => {
   return useExportRecords('orders');
@@ -302,9 +297,9 @@ export const useBulkUpdateInvoices = () => {
   return useBulkUpdate<Invoice>('invoices');
 };
 
-export const useBulkDeleteInvoices = () => {
-  return useBulkDelete('invoices');
-};
+// export const useBulkDeleteInvoices = () => {
+//   return useBulkDelete('invoices');
+// };
 
 export const useExportInvoices = () => {
   return useExportRecords('invoices');

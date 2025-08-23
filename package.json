@@ -25,7 +25,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "mock": "node scripts/toggle-data-mode.js mock",
+    "zoho": "node scripts/toggle-data-mode.js zoho"
   },
   "eslintConfig": {
     "extends": [

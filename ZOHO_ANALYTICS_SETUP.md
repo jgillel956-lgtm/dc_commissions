@@ -35,8 +35,8 @@ This guide provides exact instructions for connecting your commission management
 2. **Client Type**: Select **"Web based"**
 3. **Homepage URL**: `http://localhost:3000` (for development)
 4. **Authorized Redirect URIs**: 
-   - Development: `http://localhost:3000/auth/callback`
-   - Production: `https://your-domain.vercel.app/auth/callback`
+   - Development: `http://localhost:3000/auth-callback.html`
+   - Production: `https://your-domain.vercel.app/auth-callback.html`
 
 ### 2.3 Get Client Credentials
 After creating the client, note down:
@@ -49,12 +49,12 @@ After creating the client, note down:
 ### 3.1 Create Authorization URL
 Replace the placeholders in this URL:
 ```
-https://accounts.zoho.com/oauth/v2/auth?scope=ZohoAnalytics.workspace.ALL&client_id={CLIENT_ID}&response_type=code&access_type=offline&redirect_uri={REDIRECT_URI}
+https://accounts.zoho.com/oauth/v2/auth?scope=ZohoAnalytics.data.all&client_id={CLIENT_ID}&response_type=code&access_type=offline&redirect_uri={REDIRECT_URI}
 ```
 
 Example:
 ```
-https://accounts.zoho.com/oauth/v2/auth?scope=ZohoAnalytics.workspace.ALL&client_id=1000.ABC123DEF456&response_type=code&access_type=offline&redirect_uri=http://localhost:3000/auth/callback
+https://accounts.zoho.com/oauth/v2/auth?scope=ZohoAnalytics.data.all&client_id=1000.ABC123DEF456&response_type=code&access_type=offline&redirect_uri=http://localhost:3000/auth-callback.html
 ```
 
 ### 3.2 Get Authorization Code

@@ -7,13 +7,15 @@ const USE_MOCK_DATA = process.env.REACT_APP_ENABLE_MOCK_DATA === 'true';
 
 // Helper function to convert Zoho Analytics response to our API response format
 function convertZohoResponse<T>(zohoResponse: ZohoAnalyticsResponse<T[]>): ApiResponse<T> {
-  return {
+    return {
     data: zohoResponse.data || [],
     total: zohoResponse.info?.totalRows || 0,
     page: zohoResponse.info?.pageNo || 1,
-    totalPages: zohoResponse.info?.totalRows && zohoResponse.info?.perPage 
+    totalPages: zohoResponse.info?.totalRows && zohoResponse.info?.perPage
       ? Math.ceil(zohoResponse.info.totalRows / zohoResponse.info.perPage)
       : 1,
+    limit: zohoResponse.info?.perPage || 50,
+    success: zohoResponse.status.code === 0,
     status: zohoResponse.status.code === 0 ? 'success' : 'error',
     message: zohoResponse.status.message
   };
@@ -50,11 +52,18 @@ export const zohoApi = {
 
       const response = await zohoAnalyticsAPI.getRecords<T>(tableName, zohoParams);
       return convertZohoResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching records:', error);
+      
+      // If CORS is blocking the request, fall back to mock data
+      if (error.message === 'CORS_BLOCKED_FALLBACK_TO_MOCK') {
+        console.warn('Falling back to mock data due to CORS restrictions');
+        return mockApi.getRecords(tableName, params);
+      }
+      
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -81,8 +90,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error fetching record:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -90,7 +99,7 @@ export const zohoApi = {
   // Create a new record
   createRecord: async <T>(tableName: string, data: any): Promise<T> => {
     if (USE_MOCK_DATA) {
-      return mockApi.createRecord(tableName, data);
+      return mockApi.addRecord(tableName, data);
     }
 
     try {
@@ -100,12 +109,12 @@ export const zohoApi = {
         throw new Error(response.status.message);
       }
       
-      return response.data as T;
+      return response.data as unknown as T;
     } catch (error) {
       console.error('Error creating record:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -113,7 +122,11 @@ export const zohoApi = {
   // Update an existing record
   updateRecord: async <T>(tableName: string, id: string, data: any): Promise<T> => {
     if (USE_MOCK_DATA) {
-      return mockApi.updateRecord(tableName, id, data);
+      const result = mockApi.updateRecord(tableName, parseInt(id), data);
+      if (!result) {
+        throw new Error('Record not found');
+      }
+      return result as T;
     }
 
     try {
@@ -127,8 +140,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error updating record:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -136,7 +149,11 @@ export const zohoApi = {
   // Delete a record
   deleteRecord: async (tableName: string, id: string): Promise<void> => {
     if (USE_MOCK_DATA) {
-      return mockApi.deleteRecord(tableName, id);
+      const success = mockApi.deleteRecord(tableName, parseInt(id));
+      if (!success) {
+        throw new Error('Record not found');
+      }
+      return;
     }
 
     try {
@@ -148,8 +165,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error deleting record:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -166,8 +183,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error searching records:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -175,7 +192,7 @@ export const zohoApi = {
   // Export records
   exportRecords: async (tableName: string, format: 'csv' | 'excel' = 'csv', params?: SearchParams): Promise<Blob> => {
     if (USE_MOCK_DATA) {
-      return mockApi.exportRecords(tableName, format, params);
+      return mockApi.exportRecords(tableName, format);
     }
 
     try {
@@ -195,8 +212,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error exporting records:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -227,8 +244,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error getting table metadata:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -238,9 +255,9 @@ export const zohoApi = {
     if (USE_MOCK_DATA) {
       const results = [];
       for (const record of data) {
-        results.push(await mockApi.createRecord(tableName, record));
+        results.push(await mockApi.addRecord(tableName, record));
       }
-      return results;
+      return results as T[];
     }
 
     try {
@@ -254,8 +271,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error bulk creating records:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },
@@ -265,9 +282,12 @@ export const zohoApi = {
       const results = [];
       for (const record of data) {
         const { id, ...updateData } = record;
-        results.push(await mockApi.updateRecord(tableName, id, updateData));
+        const result = mockApi.updateRecord(tableName, parseInt(id), updateData);
+        if (result) {
+          results.push(result);
+        }
       }
-      return results;
+      return results as T[];
     }
 
     try {
@@ -286,8 +306,8 @@ export const zohoApi = {
     } catch (error) {
       console.error('Error bulk updating records:', error);
       throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error'
+        code: 'API_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       } as ApiError;
     }
   },

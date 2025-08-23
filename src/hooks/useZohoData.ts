@@ -1,11 +1,5 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { 
-  customersApi, 
-  productsApi, 
-  ordersApi, 
-  invoicesApi,
-  zohoApi 
-} from '../services/zohoApi';
+import { zohoApi } from '../services/zohoApi';
 import { SearchParams, Customer, Product, Order, Invoice } from '../services/apiTypes';
 
 // Generic hook for fetching records with search and pagination
@@ -113,56 +107,18 @@ export const useSearchInvoices = (query: string, params?: SearchParams) => {
 };
 
 // Single record hooks
-export const useCustomer = (id: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['customers', 'record', id],
-    queryFn: () => customersApi.getById(id),
-    enabled: enabled && !!id,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-  });
-};
+// Legacy hooks removed - use useRecord instead
 
-export const useProduct = (id: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['products', 'record', id],
-    queryFn: () => productsApi.getById(id),
-    enabled: enabled && !!id,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-};
-
-export const useOrder = (id: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['orders', 'record', id],
-    queryFn: () => ordersApi.getById(id),
-    enabled: enabled && !!id,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-};
-
-export const useInvoice = (id: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['invoices', 'record', id],
-    queryFn: () => invoicesApi.getById(id),
-    enabled: enabled && !!id,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-};
-
-// Table schema hook
-export const useTableSchema = (tableName: string, enabled: boolean = true) => {
-  return useQuery({
-    queryKey: ['table-schema', tableName],
-    queryFn: () => zohoApi.getTableSchema(tableName),
-    enabled: enabled && !!tableName,
-    staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours
-  });
-};
+// Table schema hook - disabled until API method is available
+// export const useTableSchema = (tableName: string, enabled: boolean = true) => {
+//   return useQuery({
+//     queryKey: ['table-schema', tableName],
+//     queryFn: () => zohoApi.getTableSchema(tableName),
+//     enabled: enabled && !!tableName,
+//     staleTime: 60 * 60 * 1000, // 1 hour
+//     gcTime: 24 * 60 * 60 * 1000, // 24 hours
+//   });
+// };
 
 // Health check hook
 export const useHealthCheck = () => {

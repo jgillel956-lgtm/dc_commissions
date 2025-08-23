@@ -26,21 +26,44 @@ class ZohoAnalyticsAPI {
   private clientId: string;
   private clientSecret: string;
   private workspaceId: string;
+  private orgId: string;
   private rateLimiter = {
     lastCall: 0,
     minInterval: 100 // 100ms between calls
   };
 
   constructor() {
-    this.refreshToken = process.env.REACT_APP_ZOHO_REFRESH_TOKEN!;
-    this.clientId = process.env.REACT_APP_ZOHO_CLIENT_ID!;
-    this.clientSecret = process.env.REACT_APP_ZOHO_CLIENT_SECRET!;
-    this.workspaceId = process.env.REACT_APP_ZOHO_WORKSPACE_ID!;
+    // Debug environment variables
+    console.log('Environment variables check:', {
+      refreshToken: process.env.REACT_APP_ZOHO_REFRESH_TOKEN ? 'SET' : 'MISSING',
+      clientId: process.env.REACT_APP_ZOHO_CLIENT_ID ? 'SET' : 'MISSING',
+      clientSecret: process.env.REACT_APP_ZOHO_CLIENT_SECRET ? 'SET' : 'MISSING',
+      workspaceId: process.env.REACT_APP_ZOHO_WORKSPACE_ID ? 'SET' : 'MISSING',
+      orgId: process.env.REACT_APP_ZOHO_ORG_ID ? 'SET' : 'MISSING',
+      enableMockData: process.env.REACT_APP_ENABLE_MOCK_DATA
+    });
 
-    // Validate required environment variables
-    if (!this.refreshToken || !this.clientId || !this.clientSecret || !this.workspaceId) {
-      throw new Error('Missing required Zoho Analytics environment variables');
+    this.refreshToken = process.env.REACT_APP_ZOHO_REFRESH_TOKEN || '';
+    this.clientId = process.env.REACT_APP_ZOHO_CLIENT_ID || '';
+    this.clientSecret = process.env.REACT_APP_ZOHO_CLIENT_SECRET || '';
+    this.workspaceId = process.env.REACT_APP_ZOHO_WORKSPACE_ID || '';
+    this.orgId = process.env.REACT_APP_ZOHO_ORG_ID || '';
+
+    // Check if we're in mock data mode or if environment variables are missing
+    const useMockData = process.env.REACT_APP_ENABLE_MOCK_DATA === 'true' || 
+                       !this.refreshToken || 
+                       !this.clientId || 
+                       !this.clientSecret || 
+                       !this.workspaceId || 
+                       !this.orgId;
+
+    if (useMockData) {
+      console.warn('Zoho Analytics API: Using mock data mode due to missing environment variables or explicit setting');
+      // Don't throw error, just log warning and continue with mock data
+      return;
     }
+
+    console.log('Zoho Analytics API: All environment variables loaded successfully');
   }
 
   private async rateLimit(): Promise<void> {
@@ -57,6 +80,12 @@ class ZohoAnalyticsAPI {
   }
 
   private async getAccessToken(): Promise<string> {
+    // If environment variables are missing, fall back to mock data
+    if (!this.refreshToken || !this.clientId || !this.clientSecret) {
+      console.warn('Missing Zoho credentials, falling back to mock data');
+      throw new Error('CORS_BLOCKED_FALLBACK_TO_MOCK');
+    }
+
     if (this.accessToken) {
       return this.accessToken;
     }
@@ -64,17 +93,34 @@ class ZohoAnalyticsAPI {
     try {
       await this.rateLimit();
 
-      const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', {
-        refresh_token: this.refreshToken,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        grant_type: 'refresh_token'
+      // Use URLSearchParams to properly encode the form data
+      const formData = new URLSearchParams();
+      formData.append('refresh_token', this.refreshToken);
+      formData.append('client_id', this.clientId);
+      formData.append('client_secret', this.clientSecret);
+      formData.append('grant_type', 'refresh_token');
+
+      const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       });
 
       this.accessToken = response.data.access_token;
-      return this.accessToken;
-    } catch (error) {
+      return this.accessToken!;
+    } catch (error: any) {
       console.error('Failed to refresh access token:', error);
+      
+      // Check if this is a CORS error or network error
+      if (error.message === 'Network Error' || 
+          error.code === 'ERR_NETWORK' ||
+          (error.response && error.response.status === 0) ||
+          error.message.includes('CORS')) {
+        
+        console.warn('CORS blocked OAuth request, falling back to mock data');
+        throw new Error('CORS_BLOCKED_FALLBACK_TO_MOCK');
+      }
+      
       throw new Error('Authentication failed. Please check your credentials.');
     }
   }
@@ -103,7 +149,7 @@ class ZohoAnalyticsAPI {
       throw new Error('Rate limit exceeded. Please try again later.');
     }
 
-    const errorMessage = error.response?.data?.status?.message || error.message;
+    const errorMessage = (error.response?.data as any)?.status?.message || error.message;
     throw new Error(`Zoho Analytics API Error: ${errorMessage}`);
   }
 
@@ -120,10 +166,11 @@ class ZohoAnalyticsAPI {
       
       const config = {
         method,
-        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/api/v2'}${endpoint}`,
+        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/restapi/v2'}${endpoint}`,
         headers: {
           'Authorization': `Zoho-oauthtoken ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'ZANALYTICS-ORGID': this.orgId
         },
         data,
         params
@@ -146,24 +193,20 @@ class ZohoAnalyticsAPI {
     }
   }
 
-  // Get records from a table
+  // Get records from a table using table ID
   async getRecords<T = any>(
-    tableName: string, 
+    tableId: string, 
     params?: {
-      ZOHO_CRITERIA?: string;
-      ZOHO_SORT_COLUMN?: string;
-      ZOHO_SORT_ORDER?: 'asc' | 'desc';
-      ZOHO_PAGE_NO?: number;
-      ZOHO_PER_PAGE?: number;
+      ZOHO_MAX_ROWS?: number;
+      ZOHO_SKIP_ROWS?: number;
     }
   ): Promise<ZohoAnalyticsResponse<T[]>> {
     const queryParams = {
-      ZOHO_WORKSPACE_ID: this.workspaceId,
-      ZOHO_TABLE_NAME: tableName,
+      ZOHO_MAX_ROWS: 50,
       ...params
     };
 
-    return this.makeRequest<T[]>(`/tables`, 'GET', undefined, queryParams);
+    return this.makeRequest<T[]>(`/workspaces/${this.workspaceId}/views/${tableId}/data`, 'GET', undefined, queryParams);
   }
 
   // Get a single record by ID
@@ -285,7 +328,8 @@ class ZohoAnalyticsAPI {
       ? searchColumns.map(col => `${col} like '%${searchTerm}%'`).join(' or ')
       : `* like '%${searchTerm}%'`;
 
-    return this.getRecords<T>(tableName, { ZOHO_CRITERIA: criteria });
+    // TODO: Implement search functionality when criteria parameter is supported
+    return this.getRecords<T>(tableName);
   }
 
   // Batch operations

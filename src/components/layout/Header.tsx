@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BarChart3, Download, User, Bell, History } from 'lucide-react';
 import Button from '../ui/Button';
 import AuditLogViewer from '../audit/AuditLogViewer';
+import ConnectionStatus from './ConnectionStatus';
 
 interface HeaderProps {
   onExport?: (tableName: string, format: 'csv' | 'excel') => void;
@@ -56,6 +57,9 @@ const Header: React.FC<HeaderProps> = ({
               Export
             </Button>
           )}
+          
+          {/* Connection Status */}
+          <ConnectionStatus />
           
           {/* Notifications */}
           <button className="relative p-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200">
