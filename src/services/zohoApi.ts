@@ -1,95 +1,65 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { 
-  ApiResponse, 
-  ApiError, 
-  SearchParams, 
-  Customer, 
-  Product, 
-  Order, 
-  Invoice 
-} from './apiTypes';
+import { ApiResponse, ApiError, SearchParams } from './apiTypes';
 import { mockApi } from './mockData';
-
-// API configuration
-const API_BASE = process.env.REACT_APP_ZOHO_API_BASE || 'https://analyticsapi.zoho.com/api/v1';
-const API_TOKEN = process.env.REACT_APP_ZOHO_API_TOKEN || '';
-const WORKSPACE_ID = process.env.REACT_APP_WORKSPACE_ID || '';
+import { zohoAnalyticsAPI, ZohoAnalyticsResponse } from './zohoAnalyticsAPI';
 
 // Check if we should use mock data
-const USE_MOCK_DATA = process.env.REACT_APP_ENABLE_MOCK_DATA === 'true' || !API_TOKEN || !WORKSPACE_ID;
+const USE_MOCK_DATA = process.env.REACT_APP_ENABLE_MOCK_DATA === 'true';
 
-// Create axios instance with default configuration
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${API_TOKEN}`,
-  },
-});
+// Helper function to convert Zoho Analytics response to our API response format
+function convertZohoResponse<T>(zohoResponse: ZohoAnalyticsResponse<T[]>): ApiResponse<T> {
+  return {
+    data: zohoResponse.data || [],
+    total: zohoResponse.info?.totalRows || 0,
+    page: zohoResponse.info?.pageNo || 1,
+    totalPages: zohoResponse.info?.totalRows && zohoResponse.info?.perPage 
+      ? Math.ceil(zohoResponse.info.totalRows / zohoResponse.info.perPage)
+      : 1,
+    status: zohoResponse.status.code === 0 ? 'success' : 'error',
+    message: zohoResponse.status.message
+  };
+}
 
-// Request interceptor for logging and error handling
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => {
-    console.error('API Request Error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
-  (error) => {
-    console.error('API Response Error:', error);
-    
-    const apiError: ApiError = {
-      message: error.response?.data?.message || error.message || 'An unexpected error occurred',
-      code: error.response?.status?.toString(),
-      details: error.response?.data,
-    };
-    
-    return Promise.reject(apiError);
-  }
-);
-
-// Generic API functions
+// Zoho Analytics API abstraction
 export const zohoApi = {
-  // GET all records
+  // Get records with search, filter, and pagination
   getRecords: async <T>(tableName: string, params?: SearchParams): Promise<ApiResponse<T>> => {
     if (USE_MOCK_DATA) {
-      return mockApi.getRecords<T>(tableName, params);
+      return mockApi.getRecords(tableName, params);
     }
-    
+
     try {
-      const response = await apiClient.get(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        params: {
-          page: params?.page || 1,
-          limit: params?.limit || 50,
-          sort_by: params?.sortBy,
-          sort_order: params?.sortOrder,
-          ...params?.filters,
-        },
-      });
+      // Convert our search params to Zoho Analytics format
+      const zohoParams: any = {};
       
-      return {
-        data: response.data.data || [],
-        success: true,
-        total: response.data.total,
-        page: response.data.page,
-        limit: response.data.limit,
-      };
+      if (params?.search) {
+        zohoParams.ZOHO_CRITERIA = `* like '%${params.search}%'`;
+      }
+      
+      if (params?.sortBy) {
+        zohoParams.ZOHO_SORT_COLUMN = params.sortBy;
+        zohoParams.ZOHO_SORT_ORDER = params.sortOrder || 'asc';
+      }
+      
+      if (params?.page) {
+        zohoParams.ZOHO_PAGE_NO = params.page;
+      }
+      
+      if (params?.limit) {
+        zohoParams.ZOHO_PER_PAGE = params.limit;
+      }
+
+      const response = await zohoAnalyticsAPI.getRecords<T>(tableName, zohoParams);
+      return convertZohoResponse(response);
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error fetching records:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // GET single record
+  // Get a single record by ID
   getRecord: async <T>(tableName: string, id: string): Promise<T> => {
     if (USE_MOCK_DATA) {
       const records = await mockApi.getRecords<T>(tableName);
@@ -99,199 +69,242 @@ export const zohoApi = {
       }
       return record;
     }
-    
+
     try {
-      const response = await apiClient.get(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records/${id}`);
-      return response.data.data;
+      const response = await zohoAnalyticsAPI.getRecord<T>(tableName, id);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
+      
+      return response.data as T;
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error fetching record:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // POST new record
+  // Create a new record
   createRecord: async <T>(tableName: string, data: any): Promise<T> => {
     if (USE_MOCK_DATA) {
-      return mockApi.createRecord<T>(tableName, data);
+      return mockApi.createRecord(tableName, data);
     }
-    
+
     try {
-      const response = await apiClient.post(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        data: [data],
-      });
-      return response.data.data[0];
+      const response = await zohoAnalyticsAPI.createRecord<T>(tableName, data);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
+      
+      return response.data as T;
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error creating record:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // PUT update record
+  // Update an existing record
   updateRecord: async <T>(tableName: string, id: string, data: any): Promise<T> => {
     if (USE_MOCK_DATA) {
-      return mockApi.updateRecord<T>(tableName, id, data);
+      return mockApi.updateRecord(tableName, id, data);
     }
-    
+
     try {
-      const response = await apiClient.put(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records/${id}`, {
-        data: [data],
-      });
-      return response.data.data[0];
+      const response = await zohoAnalyticsAPI.updateRecord<T>(tableName, id, data);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
+      
+      return response.data as T;
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error updating record:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // DELETE record
+  // Delete a record
   deleteRecord: async (tableName: string, id: string): Promise<void> => {
     if (USE_MOCK_DATA) {
       return mockApi.deleteRecord(tableName, id);
     }
-    
+
     try {
-      await apiClient.delete(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records/${id}`);
+      const response = await zohoAnalyticsAPI.deleteRecord(tableName, id);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error deleting record:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // GET with search/filter
+  // Search records
   searchRecords: async <T>(tableName: string, query: string, params?: SearchParams): Promise<ApiResponse<T>> => {
     if (USE_MOCK_DATA) {
-      return mockApi.searchRecords<T>(tableName, query, params);
+      return mockApi.searchRecords(tableName, query, params);
     }
-    
+
     try {
-      const response = await apiClient.get(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        params: {
-          search: query,
-          page: params?.page || 1,
-          limit: params?.limit || 50,
-          sort_by: params?.sortBy,
-          sort_order: params?.sortOrder,
-          ...params?.filters,
-        },
-      });
-      
-      return {
-        data: response.data.data || [],
-        success: true,
-        total: response.data.total,
-        page: response.data.page,
-        limit: response.data.limit,
-      };
+      const response = await zohoAnalyticsAPI.searchRecords<T>(tableName, query);
+      return convertZohoResponse(response);
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error searching records:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
+    }
+  },
+
+  // Export records
+  exportRecords: async (tableName: string, format: 'csv' | 'excel' = 'csv', params?: SearchParams): Promise<Blob> => {
+    if (USE_MOCK_DATA) {
+      return mockApi.exportRecords(tableName, format, params);
+    }
+
+    try {
+      // Convert our search params to Zoho Analytics format
+      const zohoParams: any = {};
+      
+      if (params?.search) {
+        zohoParams.ZOHO_CRITERIA = `* like '%${params.search}%'`;
+      }
+      
+      if (params?.sortBy) {
+        zohoParams.ZOHO_SORT_COLUMN = params.sortBy;
+        zohoParams.ZOHO_SORT_ORDER = params.sortOrder || 'asc';
+      }
+
+      return await zohoAnalyticsAPI.exportRecords(tableName, format, zohoParams);
+    } catch (error) {
+      console.error('Error exporting records:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
+    }
+  },
+
+  // Test connection to Zoho Analytics
+  testConnection: async (): Promise<boolean> => {
+    if (USE_MOCK_DATA) {
+      return true; // Mock data always works
+    }
+
+    try {
+      return await zohoAnalyticsAPI.testConnection();
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      return false;
+    }
+  },
+
+  // Get table metadata (schema)
+  getTableMetadata: async (tableName: string): Promise<any> => {
+    if (USE_MOCK_DATA) {
+      return { fields: [] }; // Mock metadata
+    }
+
+    try {
+      const response = await zohoAnalyticsAPI.getTableMetadata(tableName);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting table metadata:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
   // Bulk operations
   bulkCreate: async <T>(tableName: string, data: any[]): Promise<T[]> => {
-    try {
-      const response = await apiClient.post(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        data,
-      });
-      return response.data.data;
-    } catch (error) {
-      throw error as ApiError;
-    }
-  },
-
-  bulkUpdate: async <T>(tableName: string, data: any[]): Promise<T[]> => {
-    try {
-      const response = await apiClient.put(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        data,
-      });
-      return response.data.data;
-    } catch (error) {
-      throw error as ApiError;
-    }
-  },
-
-  bulkDelete: async (tableName: string, ids: string[]): Promise<void> => {
-    try {
-      await apiClient.delete(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/records`, {
-        data: { ids },
-      });
-    } catch (error) {
-      throw error as ApiError;
-    }
-  },
-
-  // Export functionality
-  exportRecords: async (tableName: string, format: 'csv' | 'excel' = 'csv', params?: SearchParams): Promise<Blob> => {
     if (USE_MOCK_DATA) {
-      return mockApi.exportRecords(tableName, format, params);
+      const results = [];
+      for (const record of data) {
+        results.push(await mockApi.createRecord(tableName, record));
+      }
+      return results;
     }
-    
+
     try {
-      const response = await apiClient.get(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/export`, {
-        params: {
-          format,
-          ...params,
-        },
-        responseType: 'blob',
-      });
-      return response.data;
+      const response = await zohoAnalyticsAPI.batchCreateRecords<T>(tableName, data);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
+      
+      return response.data || [];
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error bulk creating records:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
-  // Get table schema
-  getTableSchema: async (tableName: string): Promise<any> => {
+  bulkUpdate: async <T>(tableName: string, data: Array<{ id: string; [key: string]: any }>): Promise<T[]> => {
+    if (USE_MOCK_DATA) {
+      const results = [];
+      for (const record of data) {
+        const { id, ...updateData } = record;
+        results.push(await mockApi.updateRecord(tableName, id, updateData));
+      }
+      return results;
+    }
+
     try {
-      const response = await apiClient.get(`/workspaces/${WORKSPACE_ID}/tables/${tableName}/schema`);
-      return response.data;
+      const recordsWithRowId = data.map(record => ({
+        ZOHO_ROW_ID: record.id,
+        ...record
+      }));
+      
+      const response = await zohoAnalyticsAPI.batchUpdateRecords<T>(tableName, recordsWithRowId);
+      
+      if (response.status.code !== 0) {
+        throw new Error(response.status.message);
+      }
+      
+      return response.data || [];
     } catch (error) {
-      throw error as ApiError;
+      console.error('Error bulk updating records:', error);
+      throw {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: 'error'
+      } as ApiError;
     }
   },
 
   // Health check
   healthCheck: async (): Promise<boolean> => {
-    try {
-      await apiClient.get('/health');
+    if (USE_MOCK_DATA) {
       return true;
+    }
+
+    try {
+      return await zohoAnalyticsAPI.testConnection();
     } catch (error) {
+      console.error('Health check failed:', error);
       return false;
     }
-  },
-};
-
-// Type-specific API functions for better type safety
-export const customersApi = {
-  getAll: (params?: SearchParams) => zohoApi.getRecords<Customer>('customers', params),
-  getById: (id: string) => zohoApi.getRecord<Customer>('customers', id),
-  create: (data: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => zohoApi.createRecord<Customer>('customers', data),
-  update: (id: string, data: Partial<Customer>) => zohoApi.updateRecord<Customer>('customers', id, data),
-  delete: (id: string) => zohoApi.deleteRecord('customers', id),
-  search: (query: string, params?: SearchParams) => zohoApi.searchRecords<Customer>('customers', query, params),
-};
-
-export const productsApi = {
-  getAll: (params?: SearchParams) => zohoApi.getRecords<Product>('products', params),
-  getById: (id: string) => zohoApi.getRecord<Product>('products', id),
-  create: (data: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => zohoApi.createRecord<Product>('products', data),
-  update: (id: string, data: Partial<Product>) => zohoApi.updateRecord<Product>('products', id, data),
-  delete: (id: string) => zohoApi.deleteRecord('products', id),
-  search: (query: string, params?: SearchParams) => zohoApi.searchRecords<Product>('products', query, params),
-};
-
-export const ordersApi = {
-  getAll: (params?: SearchParams) => zohoApi.getRecords<Order>('orders', params),
-  getById: (id: string) => zohoApi.getRecord<Order>('orders', id),
-  create: (data: Omit<Order, 'id' | 'created_at' | 'updated_at'>) => zohoApi.createRecord<Order>('orders', data),
-  update: (id: string, data: Partial<Order>) => zohoApi.updateRecord<Order>('orders', id, data),
-  delete: (id: string) => zohoApi.deleteRecord('orders', id),
-  search: (query: string, params?: SearchParams) => zohoApi.searchRecords<Order>('orders', query, params),
-};
-
-export const invoicesApi = {
-  getAll: (params?: SearchParams) => zohoApi.getRecords<Invoice>('invoices', params),
-  getById: (id: string) => zohoApi.getRecord<Invoice>('invoices', id),
-  create: (data: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => zohoApi.createRecord<Invoice>('invoices', data),
-  update: (id: string, data: Partial<Invoice>) => zohoApi.updateRecord<Invoice>('invoices', id, data),
-  delete: (id: string) => zohoApi.deleteRecord('invoices', id),
-  search: (query: string, params?: SearchParams) => zohoApi.searchRecords<Invoice>('invoices', query, params),
+  }
 };
 
 export default zohoApi;
