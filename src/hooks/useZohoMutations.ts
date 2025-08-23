@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { zohoApi } from '../services/zohoApi';
 import { Customer, Product, Order, Invoice, ApiError } from '../services/apiTypes';
+import { useAuth } from '../contexts/AuthContext';
 
 // Generic mutation hook for creating records
 export const useCreateRecord = <T>(tableName: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (data: any) => {
@@ -13,12 +15,9 @@ export const useCreateRecord = <T>(tableName: string) => {
       // Log the create operation for audit
       try {
         const { auditLogger } = await import('../services/auditLogger');
-        const { useUser } = await import('../contexts/UserContext');
-        // Note: In a real implementation, you'd get the user from context
-        // For now, we'll use a placeholder
         await auditLogger.logCreate(
-          'current_user_id', // Replace with actual user ID from context
-          'Current User', // Replace with actual user name from context
+          user?.id?.toString() || 'unknown',
+          user?.username || 'Unknown User',
           tableName,
           (result as any).id || 'unknown',
           data
@@ -43,6 +42,7 @@ export const useCreateRecord = <T>(tableName: string) => {
 // Generic mutation hook for updating records
 export const useUpdateRecord = <T>(tableName: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async ({ id, data, oldData }: { id: string; data: any; oldData?: any }) => {
@@ -53,8 +53,8 @@ export const useUpdateRecord = <T>(tableName: string) => {
         try {
           const { auditLogger } = await import('../services/auditLogger');
           await auditLogger.logUpdate(
-            'current_user_id', // Replace with actual user ID from context
-            'Current User', // Replace with actual user name from context
+            user?.id?.toString() || 'unknown',
+            user?.username || 'Unknown User',
             tableName,
             id,
             oldData,
@@ -84,6 +84,7 @@ export const useUpdateRecord = <T>(tableName: string) => {
 // Generic mutation hook for deleting records
 export const useDeleteRecord = (tableName: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async ({ id, deletedData }: { id: string; deletedData?: any }) => {
@@ -94,8 +95,8 @@ export const useDeleteRecord = (tableName: string) => {
         try {
           const { auditLogger } = await import('../services/auditLogger');
           await auditLogger.logDelete(
-            'current_user_id', // Replace with actual user ID from context
-            'Current User', // Replace with actual user name from context
+            user?.id?.toString() || 'unknown',
+            user?.username || 'Unknown User',
             tableName,
             id,
             deletedData
@@ -124,9 +125,32 @@ export const useDeleteRecord = (tableName: string) => {
 // Generic mutation hook for bulk operations
 export const useBulkCreate = <T>(tableName: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
-    mutationFn: (data: any[]) => zohoApi.bulkCreate<T>(tableName, data),
+    mutationFn: async (data: any[]) => {
+      const result = await zohoApi.bulkCreate<T>(tableName, data);
+      
+      // Log the bulk create operation for audit
+      try {
+        const { auditLogger } = await import('../services/auditLogger');
+        // Log each record creation individually
+        for (const record of data) {
+          await auditLogger.logCreate(
+            user?.id?.toString() || 'unknown',
+            user?.username || 'Unknown User',
+            tableName,
+            (record as any).id || 'bulk_created',
+            record,
+            { bulkOperation: true, totalRecords: data.length }
+          );
+        }
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+      
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [tableName, 'records'] });
       queryClient.invalidateQueries({ queryKey: [tableName, 'infinite-records'] });
@@ -139,9 +163,35 @@ export const useBulkCreate = <T>(tableName: string) => {
 
 export const useBulkUpdate = <T>(tableName: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
-    mutationFn: (data: any[]) => zohoApi.bulkUpdate<T>(tableName, data),
+    mutationFn: async (data: any[]) => {
+      const result = await zohoApi.bulkUpdate<T>(tableName, data);
+      
+      // Log the bulk update operation for audit
+      try {
+        const { auditLogger } = await import('../services/auditLogger');
+        // Log each record update individually
+        for (const record of data) {
+          const { id, ...updateData } = record;
+          await auditLogger.logUpdate(
+            user?.id?.toString() || 'unknown',
+            user?.username || 'Unknown User',
+            tableName,
+            id,
+            {}, // Old data not available in bulk update
+            updateData,
+            undefined,
+            { bulkOperation: true, totalRecords: data.length }
+          );
+        }
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+      
+      return result;
+    },
     onSuccess: (updatedRecords) => {
       // Update each record in cache
       updatedRecords.forEach(record => {
@@ -180,9 +230,29 @@ export const useBulkUpdate = <T>(tableName: string) => {
 
 // Export mutation hook
 export const useExportRecords = (tableName: string) => {
+  const { user } = useAuth();
+  
   return useMutation({
-    mutationFn: ({ format, params }: { format: 'csv' | 'excel'; params?: any }) => 
-      zohoApi.exportRecords(tableName, format, params),
+    mutationFn: async ({ format, params }: { format: 'csv' | 'excel'; params?: any }) => {
+      const result = await zohoApi.exportRecords(tableName, format, params);
+      
+      // Log the export operation for audit
+      try {
+        const { auditLogger } = await import('../services/auditLogger');
+        await auditLogger.logCreate(
+          user?.id?.toString() || 'unknown',
+          user?.username || 'Unknown User',
+          tableName,
+          'export_' + Date.now(),
+          { format, params },
+          { operation: 'EXPORT', recordCount: 'unknown' }
+        );
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+      
+      return result;
+    },
     onError: (error: ApiError) => {
       console.error(`Error exporting ${tableName} records:`, error);
     },

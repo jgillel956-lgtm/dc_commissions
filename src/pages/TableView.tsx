@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import DataTable from '../components/tables/DataTable';
 import AddRecordForm from '../components/forms/AddRecordForm';
 import EditRecordForm from '../components/forms/EditRecordForm';
+import AuthIntegrationTest from '../components/AuthIntegrationTest';
 import { tableConfigs } from '../config/tableConfigs';
 import { useZohoData } from '../hooks/useZohoData';
 import { useZohoMutations } from '../hooks/useZohoMutations';
@@ -25,6 +26,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState<any>(null);
+  const [showAuthTest, setShowAuthTest] = useState(false);
 
   const tableConfig = tableConfigs[activeTable];
   
@@ -202,6 +204,9 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
           <Button onClick={handleExport} variant="secondary" size="sm">
             Export
           </Button>
+          <Button onClick={() => setShowAuthTest(true)} variant="secondary" size="sm">
+            Auth Test
+          </Button>
           <Button onClick={() => setShowAddModal(true)} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
             Add Record
@@ -306,6 +311,15 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
               </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Auth Integration Test Modal */}
+      <Modal
+        isOpen={showAuthTest}
+        onClose={() => setShowAuthTest(false)}
+        title="Auth Integration Test"
+      >
+        <AuthIntegrationTest />
       </Modal>
     </div>
   );

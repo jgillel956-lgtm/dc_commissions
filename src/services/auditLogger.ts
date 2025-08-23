@@ -5,7 +5,7 @@ export interface AuditLogEntry {
   userName: string;
   tableName: string;
   recordId: string;
-  operation: 'CREATE' | 'UPDATE' | 'DELETE';
+  operation: 'CREATE' | 'UPDATE' | 'DELETE' | 'SEARCH' | 'EXPORT' | 'LOGIN' | 'LOGOUT';
   fieldName?: string;
   oldValue?: any;
   newValue?: any;
@@ -14,17 +14,22 @@ export interface AuditLogEntry {
   userAgent?: string;
   sessionId?: string;
   metadata?: Record<string, any>;
+  duration?: number; // For operations that take time
+  success?: boolean; // Whether the operation was successful
+  errorMessage?: string; // Error message if operation failed
 }
 
 export interface AuditLogQuery {
   tableName?: string;
   userId?: string;
-  operation?: 'CREATE' | 'UPDATE' | 'DELETE';
+  operation?: 'CREATE' | 'UPDATE' | 'DELETE' | 'SEARCH' | 'EXPORT' | 'LOGIN' | 'LOGOUT';
   startDate?: Date;
   endDate?: Date;
   recordId?: string;
   limit?: number;
   offset?: number;
+  success?: boolean; // Filter by success status
+  userName?: string; // Filter by username
 }
 
 // Audit logger class
@@ -120,6 +125,170 @@ export class AuditLogger {
     await this.saveLogEntry(entry);
   }
 
+  // Log a logout operation
+  async logLogout(
+    userId: string,
+    userName: string,
+    logoutReason: 'user_initiated' | 'session_expired' | 'token_refresh_failed',
+    sessionDuration?: number,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const entry: AuditLogEntry = {
+      userId,
+      userName,
+      tableName: 'auth_system',
+      recordId: 'logout_' + Date.now(),
+      operation: 'LOGOUT',
+      oldValue: {
+        action: 'LOGOUT',
+        logoutReason,
+        sessionDuration,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date(),
+      success: true,
+      metadata: {
+        logoutReason,
+        sessionDuration,
+        ...metadata
+      }
+    };
+
+    await this.saveLogEntry(entry);
+  }
+
+  // Log a login operation
+  async logLogin(
+    userId: string,
+    userName: string,
+    success: boolean = true,
+    errorMessage?: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const entry: AuditLogEntry = {
+      userId,
+      userName,
+      tableName: 'auth_system',
+      recordId: 'login_' + Date.now(),
+      operation: 'LOGIN',
+      newValue: {
+        action: 'LOGIN',
+        success,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date(),
+      success,
+      errorMessage,
+      metadata
+    };
+
+    await this.saveLogEntry(entry);
+  }
+
+  // Log a search operation
+  async logSearch(
+    userId: string,
+    userName: string,
+    tableName: string,
+    query: string,
+    resultCount: number,
+    success: boolean = true,
+    errorMessage?: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const entry: AuditLogEntry = {
+      userId,
+      userName,
+      tableName,
+      recordId: 'search_' + Date.now(),
+      operation: 'SEARCH',
+      newValue: {
+        query,
+        resultCount,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date(),
+      success,
+      errorMessage,
+      metadata: {
+        query,
+        resultCount,
+        ...metadata
+      }
+    };
+
+    await this.saveLogEntry(entry);
+  }
+
+  // Log an export operation
+  async logExport(
+    userId: string,
+    userName: string,
+    tableName: string,
+    format: string,
+    recordCount: number,
+    success: boolean = true,
+    errorMessage?: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const entry: AuditLogEntry = {
+      userId,
+      userName,
+      tableName,
+      recordId: 'export_' + Date.now(),
+      operation: 'EXPORT',
+      newValue: {
+        format,
+        recordCount,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date(),
+      success,
+      errorMessage,
+      metadata: {
+        format,
+        recordCount,
+        ...metadata
+      }
+    };
+
+    await this.saveLogEntry(entry);
+  }
+
+  // Log a generic operation with timing
+  async logOperation(
+    userId: string,
+    userName: string,
+    tableName: string,
+    operation: 'CREATE' | 'UPDATE' | 'DELETE' | 'SEARCH' | 'EXPORT' | 'LOGIN' | 'LOGOUT',
+    recordId: string,
+    startTime: number,
+    success: boolean = true,
+    errorMessage?: string,
+    oldValue?: any,
+    newValue?: any,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    const duration = Date.now() - startTime;
+    
+    const entry: AuditLogEntry = {
+      userId,
+      userName,
+      tableName,
+      recordId,
+      operation,
+      oldValue,
+      newValue,
+      timestamp: new Date(),
+      duration,
+      success,
+      errorMessage,
+      metadata
+    };
+
+    await this.saveLogEntry(entry);
+  }
+
   // Get audit logs with filtering
   async getAuditLogs(query: AuditLogQuery): Promise<{ logs: AuditLogEntry[]; total: number }> {
     try {
@@ -134,7 +303,19 @@ export class AuditLogger {
       if (query.limit) queryParams.append('limit', query.limit.toString());
       if (query.offset) queryParams.append('offset', query.offset.toString());
 
-      const response = await fetch(`${this.apiEndpoint}/logs?${queryParams.toString()}`);
+      // Get authentication token from session storage
+      const token = sessionStorage.getItem('auth_token');
+      
+      const headers: Record<string, string> = {};
+
+      // Add authentication header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${this.apiEndpoint}/logs?${queryParams.toString()}`, {
+        headers
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch audit logs: ${response.statusText}`);
@@ -165,7 +346,19 @@ export class AuditLogger {
       if (query.endDate) queryParams.append('endDate', query.endDate.toISOString());
       if (query.recordId) queryParams.append('recordId', query.recordId);
 
-      const response = await fetch(`${this.apiEndpoint}/export?${queryParams.toString()}&format=${format}`);
+      // Get authentication token from session storage
+      const token = sessionStorage.getItem('auth_token');
+      
+      const headers: Record<string, string> = {};
+
+      // Add authentication header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${this.apiEndpoint}/export?${queryParams.toString()}&format=${format}`, {
+        headers
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to export audit logs: ${response.statusText}`);
@@ -186,11 +379,21 @@ export class AuditLogger {
       entry.userAgent = navigator.userAgent;
       entry.sessionId = this.getSessionId();
 
+      // Get authentication token from session storage
+      const token = sessionStorage.getItem('auth_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authentication header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${this.apiEndpoint}/logs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(entry),
       });
 
