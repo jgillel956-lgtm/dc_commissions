@@ -49,7 +49,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       tokenCached: !!(t && Date.now() < t.expiresAt),
-      backoffRemainingMs: Math.max(0, backoff - Date.now())
+      backoffRemainingMs: Math.max(0, backoff - Date.now()),
+      timestamp: new Date().toISOString()
     });
   }
 
