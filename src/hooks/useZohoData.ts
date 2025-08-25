@@ -12,8 +12,10 @@ export const useRecords = <T>(
     queryKey: [tableName, 'records', params],
     queryFn: () => zohoApi.getRecords<T>(tableName, params),
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (TanStack Query v4 uses gcTime)
+    staleTime: 30 * 1000, // 30 seconds (reduced from 5 minutes)
+    gcTime: 5 * 60 * 1000, // 5 minutes (reduced from 10 minutes)
+    refetchInterval: 60 * 1000, // Refetch every 60 seconds in background
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not active
   });
 };
 
@@ -34,8 +36,8 @@ export const useInfiniteRecords = <T>(
     },
     initialPageParam: 1,
     enabled,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds (reduced from 5 minutes)
+    gcTime: 5 * 60 * 1000, // 5 minutes (reduced from 10 minutes)
   });
 };
 
@@ -50,7 +52,7 @@ export const useSearchRecords = <T>(
     queryKey: [tableName, 'search', query, params],
     queryFn: () => zohoApi.searchRecords<T>(tableName, query, params),
     enabled: enabled && query.length > 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes for search results
+    staleTime: 30 * 1000, // 30 seconds (reduced from 2 minutes)
     gcTime: 5 * 60 * 1000,
   });
 };

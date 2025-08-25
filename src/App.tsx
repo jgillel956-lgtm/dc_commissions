@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout';
 import TableView from './pages/TableView';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
+import OAuthSetup from './pages/OAuthSetup';
 import { UserProvider } from './contexts/UserContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -47,6 +48,7 @@ function App() {
             <QueryClientProvider client={queryClient}>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/oauth-setup" element={<OAuthSetup />} />
                 <Route
                   path="/"
                   element={

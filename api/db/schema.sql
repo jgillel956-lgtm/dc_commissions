@@ -33,3 +33,23 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_table_name ON audit_logs(table_name);
 INSERT INTO users (username, password_hash, role) 
 VALUES ('admin', '$2b$10$rQZ8K9mN2pL1vX3yW6tA7uB4cD5eF8gH9iJ0kL1mN2oP3qR4sT5uV6wX7yZ8', 'admin')
 ON CONFLICT (username) DO NOTHING;
+
+-- OAuth token storage for Zoho Analytics
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+  provider        TEXT PRIMARY KEY,
+  access_token    TEXT NOT NULL,
+  expires_at      TIMESTAMPTZ NOT NULL,
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- OAuth rate-limit state
+CREATE TABLE IF NOT EXISTS oauth_state (
+  provider        TEXT PRIMARY KEY,
+  backoff_until   TIMESTAMPTZ,
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed initial OAuth state
+INSERT INTO oauth_state (provider, backoff_until)
+VALUES ('zoho', NULL)
+ON CONFLICT (provider) DO NOTHING;

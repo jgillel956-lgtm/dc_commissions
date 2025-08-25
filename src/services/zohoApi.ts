@@ -1,44 +1,136 @@
+import axios from 'axios';
 import { ApiResponse, ApiError, SearchParams } from './apiTypes';
 import { mockApi } from './mockData';
 import { zohoAnalyticsAPI, ZohoAnalyticsResponse } from './zohoAnalyticsAPI';
 import { auditLogger } from './auditLogger';
+import { setBackoffUntil, waitForWindow } from '../lib/zohoBackoffGate';
 
-// Check if we should use mock data
+// Retry utility with exponential backoff
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const jitter = (ms: number) => Math.floor(ms * (0.5 + Math.random())); // 50–150%
+
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 500
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry on 503 rate limits - let the caller handle it
+      if (error.response?.status === 503) {
+        throw error;
+      }
+      
+      // Don't retry on 401/403 auth errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw error;
+      }
+      
+      // Don't retry on 400 bad requests
+      if (error.response?.status === 400) {
+        throw error;
+      }
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff and jitter
+      const delay = jitter(baseDelay * Math.pow(2, attempt));
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries + 1} after ${delay}ms`);
+      await sleep(delay);
+    }
+  }
+  
+  throw lastError!;
+}
+
+// Create a separate axios instance for Zoho Analytics API calls (no auth headers)
+const zohoAxios = axios.create({
+  baseURL: '',
+  timeout: 30000,
+  headers: {
+    // Explicitly remove any authorization headers
+    'Authorization': undefined
+  }
+});
+
+// Ensure no global defaults are inherited
+zohoAxios.defaults.headers.common = {};
+zohoAxios.defaults.headers.common['Authorization'] = undefined;
+
+// BEFORE each request: if we're in cooldown, wait
+zohoAxios.interceptors.request.use(async (config) => {
+  await waitForWindow();
+  return config;
+});
+
+// AFTER response: if 503 + retry info, set backoff and throw (so caller can show toast once)
+zohoAxios.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status;
+    if (status === 503) {
+      const raMs = Number(err.response?.data?.retryAfterMs) || 0;
+      const raAt = Number(err.response?.data?.rateLimitEndsAt) || (Date.now() + raMs);
+      if (raAt) setBackoffUntil(raAt);
+    }
+    return Promise.reject(err);
+  }
+);
+
+// Check if we should use mock data (explicit flag only)
 const USE_MOCK_DATA = process.env.REACT_APP_ENABLE_MOCK_DATA === 'true';
 
 // Helper function to convert Zoho Analytics response to our API response format
-function convertZohoResponse<T>(zohoResponse: ZohoAnalyticsResponse<T[]>): ApiResponse<T> {
-    return {
-    data: zohoResponse.data || [],
-    total: zohoResponse.info?.totalRows || 0,
-    page: zohoResponse.info?.pageNo || 1,
-    totalPages: zohoResponse.info?.totalRows && zohoResponse.info?.perPage
-      ? Math.ceil(zohoResponse.info.totalRows / zohoResponse.info.perPage)
-      : 1,
-    limit: zohoResponse.info?.perPage || 50,
-    success: zohoResponse.status.code === 0,
-    status: zohoResponse.status.code === 0 ? 'success' : 'error',
-    message: zohoResponse.status.message
+function convertZohoResponse<T>(zohoResponse: any): ApiResponse<T> {
+  // Handle new response format with 'rows' property
+  const data = zohoResponse.rows || zohoResponse.data || [];
+  const total = zohoResponse.total || zohoResponse.info?.totalRows || 0;
+  const page = zohoResponse.page || zohoResponse.info?.pageNo || 1;
+  const limit = zohoResponse.limit || zohoResponse.info?.perPage || 50;
+  
+  return {
+    data: data,
+    total: total,
+    page: page,
+    totalPages: Math.ceil(total / limit),
+    limit: limit,
+    success: zohoResponse.success !== false,
+    status: zohoResponse.status || 'success',
+    message: zohoResponse.message || 'Success'
   };
 }
 
 // Helper function to verify authentication headers
 function verifyAuthHeaders() {
-  const axios = require('axios');
-  const authHeader = axios.defaults.headers.common['Authorization'];
-  
-  if (!authHeader) {
-    console.warn('No authentication header found in axios defaults');
+  try {
+    const axios = require('axios');
+    const authHeader = axios.defaults.headers.common['Authorization'];
+    
+    if (!authHeader) {
+      console.warn('No authentication header found in axios defaults');
+      return false;
+    }
+    
+    if (!authHeader.startsWith('Bearer ')) {
+      console.warn('Authentication header does not start with "Bearer "');
+      return false;
+    }
+    
+    console.log('Authentication header verified:', authHeader.substring(0, 20) + '...');
+    return true;
+  } catch (error) {
+    console.warn('Error verifying auth headers:', error);
     return false;
   }
-  
-  if (!authHeader.startsWith('Bearer ')) {
-    console.warn('Authentication header does not start with "Bearer "');
-    return false;
-  }
-  
-  console.log('Authentication header verified:', authHeader.substring(0, 20) + '...');
-  return true;
 }
 
 // Helper function to get current user info for audit logging
@@ -245,81 +337,104 @@ async function logAuditEntry(
 export const zohoApi = {
   // Get records with search, filter, and pagination
   getRecords: async <T>(tableName: string, params?: SearchParams): Promise<ApiResponse<T>> => {
-    return handleAuthenticatedCall(
-      async () => {
-        // Convert our search params to Zoho Analytics format
-        const zohoParams: any = {};
-        
-        if (params?.search) {
-          zohoParams.ZOHO_CRITERIA = `* like '%${params.search}%'`;
-        }
-        
-        if (params?.sortBy) {
-          zohoParams.ZOHO_SORT_COLUMN = params.sortBy;
-          zohoParams.ZOHO_SORT_ORDER = params.sortOrder || 'asc';
-        }
-        
-        if (params?.page) {
-          zohoParams.ZOHO_PAGE_NO = params.page;
-        }
-        
-        if (params?.limit) {
-          zohoParams.ZOHO_PER_PAGE = params.limit;
-        }
+    if (USE_MOCK_DATA) {
+      return mockApi.getRecords(tableName, params);
+    }
 
-        const response = await zohoAnalyticsAPI.getRecords<T>(tableName, zohoParams);
-        return convertZohoResponse(response);
-      },
-      () => mockApi.getRecords(tableName, params),
-      'getRecords'
-    );
+    try {
+      // Use backend proxy to avoid CORS issues (no auth headers needed)
+      // Use POST since browsers strip GET bodies
+      const response = await zohoAxios.post('/api/zoho-analytics.mjs', {
+        tableName,
+        action: 'records',
+        params
+      });
+
+      return convertZohoResponse(response.data);
+    } catch (error: any) {
+      console.error(`Error fetching ${tableName} records:`, error);
+      
+      // Handle rate limiting specifically - show user message but don't retry locally
+      if (error.response?.status === 503) {
+        const retryAfterMs = error.response?.data?.retryAfterMs || 60000;
+        console.warn(`Zoho Analytics rate limited. Retry after ${retryAfterMs}ms.`);
+        
+        // Show a single user message - the gate will handle timing
+        if (retryAfterMs > 0) {
+          throw new Error(`Zoho Analytics rate limit exceeded. Auto-retrying after ${Math.ceil(retryAfterMs / 1000)} seconds.`);
+        } else {
+          throw new Error('Zoho Analytics temporarily unavailable due to rate limiting.');
+        }
+      }
+      
+      // Only fall back to mock data if explicitly enabled
+      if (USE_MOCK_DATA) {
+        console.warn('Backend proxy failed, falling back to mock data (explicitly enabled)');
+        return mockApi.getRecords(tableName, params);
+      } else {
+        // Show error details and don't fall back to mock data
+        const errorMessage = error.response?.data?.details || error.message;
+        console.error('Backend proxy failed, not falling back to mock data:', errorMessage);
+        throw new Error(`Failed to fetch ${tableName} records: ${errorMessage}`);
+      }
+    }
   },
 
   // Get a single record by ID
   getRecord: async <T>(tableName: string, id: string): Promise<T> => {
-    return handleAuthenticatedCall(
-      async () => {
-        const response = await zohoAnalyticsAPI.getRecord<T>(tableName, id);
-        
-        if (response.status.code !== 0) {
-          throw new Error(response.status.message);
-        }
-        
-        return response.data as T;
-      },
-      async () => {
-        const records = await mockApi.getRecords<T>(tableName);
-        const record = records.data.find((r: any) => r.id === id);
-        if (!record) {
-          throw new Error('Record not found');
-        }
-        return record;
-      },
-      'getRecord'
-    );
+    if (USE_MOCK_DATA) {
+      const records = await mockApi.getRecords<T>(tableName);
+      const record = records.data.find((r: any) => r.id === id);
+      if (!record) {
+        throw new Error('Record not found');
+      }
+      return record;
+    }
+
+    try {
+      const response = await zohoAxios.post('/api/zoho-analytics.mjs', {
+        tableName,
+        action: 'record',
+        params: { id }
+      });
+
+      return response.data as T;
+    } catch (error: any) {
+      console.error(`Error fetching ${tableName} record:`, error);
+      throw error;
+    }
   },
 
   // Create a new record
   createRecord: async <T>(tableName: string, data: any): Promise<T> => {
-    return handleAuthenticatedCall(
-      async () => {
-        const response = await zohoAnalyticsAPI.createRecord<T>(tableName, data);
-        
-        if (response.status.code !== 0) {
-          throw new Error(response.status.message);
-        }
-        
-        return response.data as unknown as T;
-      },
-      async () => mockApi.addRecord(tableName, data),
-      'createRecord',
-      {
+    if (USE_MOCK_DATA) {
+      return mockApi.addRecord(tableName, data);
+    }
+
+    try {
+      const response = await zohoAxios.post('/api/zoho-analytics.mjs', {
         tableName,
-        operation: 'CREATE',
-        newData: data,
-        metadata: { source: 'zoho_api' }
+        data
+      });
+
+      // Log the create operation for audit
+      try {
+        await auditLogger.logCreate(
+          'unknown',
+          'Unknown User',
+          tableName,
+          response.data?.id || 'unknown',
+          data
+        );
+      } catch (error) {
+        console.error('Audit logging failed:', error);
       }
-    );
+
+      return response.data as T;
+    } catch (error: any) {
+      console.error(`Error creating ${tableName} record:`, error);
+      throw error;
+    }
   },
 
   // Update an existing record
@@ -336,33 +451,40 @@ export const zohoApi = {
       console.warn('Failed to get old data for audit logging:', error);
     }
 
-    return handleAuthenticatedCall(
-      async () => {
-        const response = await zohoAnalyticsAPI.updateRecord<T>(tableName, id, data);
-        
-        if (response.status.code !== 0) {
-          throw new Error(response.status.message);
-        }
-        
-        return response.data as T;
-      },
-      () => {
-        const result = mockApi.updateRecord(tableName, parseInt(id), data);
-        if (!result) {
-          throw new Error('Record not found');
-        }
-        return result as T;
-      },
-      'updateRecord',
-      {
-        tableName,
-        recordId: id,
-        operation: 'UPDATE',
-        oldData,
-        newData: data,
-        metadata: { source: 'zoho_api' }
+    if (USE_MOCK_DATA) {
+      const result = mockApi.updateRecord(tableName, parseInt(id), data);
+      if (!result) {
+        throw new Error('Record not found');
       }
-    );
+      return result as T;
+    }
+
+    try {
+      const response = await zohoAxios.put('/api/zoho-analytics.mjs', {
+        tableName,
+        data,
+        params: { id }
+      });
+
+      // Log the update operation for audit
+      try {
+        await auditLogger.logUpdate(
+          'unknown',
+          'Unknown User',
+          tableName,
+          id,
+          oldData,
+          data
+        );
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+
+      return response.data as T;
+    } catch (error: any) {
+      console.error(`Error updating ${tableName} record:`, error);
+      throw error;
+    }
   },
 
   // Delete a record
@@ -379,29 +501,38 @@ export const zohoApi = {
       console.warn('Failed to get old data for audit logging:', error);
     }
 
-    return handleAuthenticatedCall(
-      async () => {
-        const response = await zohoAnalyticsAPI.deleteRecord(tableName, id);
-        
-        if (response.status.code !== 0) {
-          throw new Error(response.status.message);
-        }
-      },
-      () => {
-        const success = mockApi.deleteRecord(tableName, parseInt(id));
-        if (!success) {
-          throw new Error('Record not found');
-        }
-      },
-      'deleteRecord',
-      {
-        tableName,
-        recordId: id,
-        operation: 'DELETE',
-        oldData,
-        metadata: { source: 'zoho_api' }
+    if (USE_MOCK_DATA) {
+      const success = mockApi.deleteRecord(tableName, parseInt(id));
+      if (!success) {
+        throw new Error('Record not found');
       }
-    );
+      return;
+    }
+
+    try {
+      const response = await zohoAxios.delete('/api/zoho-analytics.mjs', {
+        data: {
+          tableName,
+          params: { id }
+        }
+      });
+
+      // Log the delete operation for audit
+      try {
+        await auditLogger.logDelete(
+          'unknown',
+          'Unknown User',
+          tableName,
+          id,
+          oldData
+        );
+      } catch (error) {
+        console.error('Audit logging failed:', error);
+      }
+    } catch (error: any) {
+      console.error(`Error deleting ${tableName} record:`, error);
+      throw error;
+    }
   },
 
   // Search records

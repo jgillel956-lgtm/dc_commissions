@@ -38,7 +38,7 @@ export class AuditLogger {
   private apiEndpoint: string;
 
   private constructor() {
-    this.apiEndpoint = process.env.REACT_APP_AUDIT_API_ENDPOINT || '/api/audit';
+    this.apiEndpoint = process.env.REACT_APP_AUDIT_API_ENDPOINT || '/api/audit.mjs';
   }
 
   public static getInstance(): AuditLogger {
@@ -391,14 +391,30 @@ export class AuditLogger {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${this.apiEndpoint}/logs`, {
+      // For login operations, we might not have a token yet, so skip authentication
+      const isLoginOperation = entry.operation === 'LOGIN';
+      
+      const response = await fetch(`${this.apiEndpoint}`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(entry),
+        body: JSON.stringify({
+          action_type: entry.operation,
+          table_name: entry.tableName,
+          record_id: entry.recordId,
+          old_values: entry.oldValue,
+          new_values: entry.newValue,
+          ip_address: entry.ipAddress,
+          user_agent: entry.userAgent,
+          // For login operations, include user_id directly
+          ...(isLoginOperation && { user_id: entry.userId })
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to save audit log: ${response.statusText}`);
+        // For login operations, don't throw errors as they might be expected
+        if (!isLoginOperation) {
+          throw new Error(`Failed to save audit log: ${response.statusText}`);
+        }
       }
     } catch (error) {
       console.error('Error saving audit log:', error);

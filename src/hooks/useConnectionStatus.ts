@@ -41,33 +41,53 @@ export const useConnectionStatus = (): UseConnectionStatusReturn => {
         return;
       }
 
-      // Try to make a test request to Zoho Analytics
+      // Try to make a test request to Zoho Analytics via backend proxy
       const testConnection = async () => {
         try {
-          // Import the API dynamically to avoid circular dependencies
-          const { zohoAnalyticsAPI } = await import('../services/zohoAnalyticsAPI');
-          await zohoAnalyticsAPI.testConnection();
-          return true;
-        } catch (error: any) {
-          // If we get the CORS fallback error, we're not connected
-          if (error.message === 'CORS_BLOCKED_FALLBACK_TO_MOCK') {
+          const response = await fetch('/api/zoho-analytics.mjs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tableName: 'referral_partners_DC',
+              action: 'records',
+              params: { limit: 1 }
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Check if we got a valid response (not an error)
+            return data && !data.error;
+          } else if (response.status === 503) {
+            // Rate limited - still consider it a successful connection test
+            // since we got a proper response from our API
+            console.warn('Connection test: Zoho rate limited, but API is working');
+            return true;
+          } else {
             return false;
           }
-          // For other errors, we might be connected but have other issues
-          return true;
+        } catch (error: any) {
+          console.error('Connection test failed:', error);
+          return false;
         }
       };
 
       const connected = await testConnection();
-      const finalStatus = connected ? 'connected' : 'mock-data';
+      
+      // Only use mock-data if explicitly enabled, otherwise show error
+      const finalStatus = connected ? 'connected' : (useMockData ? 'mock-data' : 'error');
       setStatus(finalStatus);
       
       // Log the connection status for debugging
       console.log(`🔗 Connection Status: ${finalStatus.toUpperCase()}`);
       if (finalStatus === 'connected') {
         console.log('✅ Successfully connected to Zoho Analytics');
+      } else if (finalStatus === 'mock-data') {
+        console.log('📊 Using mock data (explicitly enabled)');
       } else {
-        console.log('📊 Using mock data (Zoho Analytics not connected)');
+        console.log('❌ Zoho Analytics connection failed');
       }
     } catch (error) {
       setStatus('error');

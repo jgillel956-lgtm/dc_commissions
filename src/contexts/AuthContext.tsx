@@ -156,6 +156,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (error) => {
         const originalRequest = error.config;
 
+        // Skip token refresh for Zoho Analytics API calls
+        if (originalRequest.url && originalRequest.url.includes('/api/zoho-analytics')) {
+          return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
@@ -193,7 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       setLoading(prev => ({ ...prev, loggingIn: true }));
 
-      const response = await axios.post('/api/auth/login', {
+      const response = await axios.post('/api/login.mjs', {
         username,
         password
       });

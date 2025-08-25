@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoho Analytics OAuth Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .step {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .code-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Zoho Analytics OAuth Setup</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This page helps you generate new OAuth tokens for Zoho Analytics. 
+            Make sure you have your Client ID and Client Secret ready from the Zoho Developer Console.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Verify Environment Variables</h3>
+            <p>First, let's check if your environment variables are set up correctly:</p>
+            <button onclick="checkEnvironment()">Check Environment Variables</button>
+            <div id="env-status"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Generate Authorization URL</h3>
+            <p>Click the button below to generate an authorization URL. You'll need to:</p>
+            <ol>
+                <li>Enter your Client ID</li>
+                <li>Click "Generate Authorization URL"</li>
+                <li>Open the generated URL in a new tab</li>
+                <li>Authorize the application in Zoho</li>
+            </ol>
+            
+            <div>
+                <label for="clientId">Client ID:</label><br>
+                <input type="text" id="clientId" placeholder="Enter your Zoho Client ID" style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+            
+            <button onclick="generateAuthUrl()">Generate Authorization URL</button>
+            <div id="auth-url"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Test Current Connection</h3>
+            <p>Test if your current OAuth tokens are working:</p>
+            <button onclick="testConnection()">Test Connection</button>
+            <div id="test-results"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Manual Token Exchange (if needed)</h3>
+            <p>If the automatic exchange doesn't work, you can manually exchange the authorization code:</p>
+            <div class="code-box">
+                <strong>Manual curl command:</strong><br>
+                curl -X POST https://accounts.zoho.com/oauth/v2/token \<br>
+                &nbsp;&nbsp;-d "code=AUTHORIZATION_CODE" \<br>
+                &nbsp;&nbsp;-d "client_id=YOUR_CLIENT_ID" \<br>
+                &nbsp;&nbsp;-d "client_secret=YOUR_CLIENT_SECRET" \<br>
+                &nbsp;&nbsp;-d "redirect_uri=https://dc-commissions.vercel.app/oauth-callback.html" \<br>
+                &nbsp;&nbsp;-d "grant_type=authorization_code"
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkEnvironment() {
+            const statusDiv = document.getElementById('env-status');
+            statusDiv.innerHTML = '<p>Checking environment variables...</p>';
+            
+            try {
+                const response = await fetch('/api/zoho-analytics.mjs?debug=1');
+                const data = await response.json();
+                
+                let html = '<div class="success"><h4>Environment Variables Status:</h4><ul>';
+                html += `<li>Refresh Token: ${data.refreshTokenSet ? '✅ Set' : '❌ Missing'}</li>`;
+                html += `<li>Client ID: ${data.clientIdSet ? '✅ Set' : '❌ Missing'}</li>`;
+                html += `<li>Client Secret: ${data.clientSecretSet ? '✅ Set' : '❌ Missing'}</li>`;
+                html += `<li>Workspace ID: ${data.workspaceIdSet ? '✅ Set' : '❌ Missing'}</li>`;
+                html += `<li>Org ID: ${data.orgIdSet ? '✅ Set' : '❌ Missing'}</li>`;
+                html += `<li>Data Center: ${data.dc}</li>`;
+                html += '</ul></div>';
+                
+                const allSet = data.refreshTokenSet && data.clientIdSet && data.clientSecretSet && data.workspaceIdSet && data.orgIdSet;
+                if (!allSet) {
+                    html += '<div class="warning"><strong>Missing credentials detected!</strong> Please set all required environment variables in your Vercel dashboard.</div>';
+                }
+                
+                statusDiv.innerHTML = html;
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="warning">Error checking environment: ' + error.message + '</div>';
+            }
+        }
+
+        function generateAuthUrl() {
+            const clientId = document.getElementById('clientId').value.trim();
+            if (!clientId) {
+                alert('Please enter your Client ID first');
+                return;
+            }
+            
+            const authUrl = `https://accounts.zoho.com/oauth/v2/auth?response_type=code&client_id=${clientId}&scope=ZohoAnalytics.data.READ,ZohoAnalytics.data.WRITE&redirect_uri=https://dc-commissions.vercel.app/oauth-callback.html&access_type=offline`;
+            
+            const urlDiv = document.getElementById('auth-url');
+            urlDiv.innerHTML = `
+                <div class="success">
+                    <h4>Authorization URL Generated:</h4>
+                    <div class="code-box">${authUrl}</div>
+                    <button onclick="window.open('${authUrl}', '_blank')">Open Authorization URL</button>
+                    <button onclick="navigator.clipboard.writeText('${authUrl}')">Copy URL</button>
+                </div>
+            `;
+        }
+
+        async function testConnection() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>Testing connection...</p>';
+            
+            try {
+                // Test OAuth token
+                const oauthResponse = await fetch('/api/zoho-analytics.mjs?testOAuth=1');
+                const oauthData = await oauthResponse.json();
+                
+                let html = '<div class="success"><h4>Connection Test Results:</h4>';
+                
+                if (oauthData.success && oauthData.hasAccessToken) {
+                    html += '<p>✅ OAuth Token: Working</p>';
+                } else {
+                    html += '<p>❌ OAuth Token: Failed</p>';
+                    if (oauthData.error) {
+                        html += `<p><strong>Error:</strong> ${oauthData.error}</p>`;
+                    }
+                    if (oauthData.data && oauthData.data.error) {
+                        html += `<p><strong>Zoho Error:</strong> ${oauthData.data.error}</p>`;
+                    }
+                }
+                
+                // Test API connection
+                try {
+                    const apiResponse = await fetch('/api/zoho-analytics.mjs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tableName: 'employee_commissions_DC',
+                            action: 'records',
+                            params: { page: 1, limit: 1 }
+                        })
+                    });
+                    
+                    if (apiResponse.ok) {
+                        html += '<p>✅ API Connection: Working</p>';
+                    } else {
+                        const apiError = await apiResponse.json();
+                        html += '<p>❌ API Connection: Failed</p>';
+                        html += `<p><strong>Error:</strong> ${apiError.error || 'Unknown error'}</p>`;
+                    }
+                } catch (apiError) {
+                    html += '<p>❌ API Connection: Failed</p>';
+                    html += `<p><strong>Error:</strong> ${apiError.message}</p>`;
+                }
+                
+                // Add recommendations
+                if (!oauthData.success || !oauthData.hasAccessToken) {
+                    html += '<div class="warning"><h4>Recommendations:</h4><ul>';
+                    html += '<li>Your refresh token may have expired. Generate a new authorization code and refresh token.</li>';
+                    html += '<li>Make sure your Client ID and Client Secret are correct.</li>';
+                    html += '<li>Verify your redirect URI matches what\'s configured in Zoho.</li>';
+                    html += '</ul></div>';
+                }
+                
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="warning">Error testing connection: ' + error.message + '</div>';
+            }
+        }
+
+        // Auto-check environment on page load
+        window.addEventListener('load', checkEnvironment);
+    </script>
+</body>
+</html>

@@ -53,9 +53,9 @@ REACT_APP_ZOHO_REFRESH_TOKEN=your_zoho_refresh_token
 
 | Name | Value | Environment |
 |------|-------|-------------|
-| `DATABASE_URL` | Your Postgres connection string | Production, Preview, Development |
-| `POSTGRES_URL` | Your Postgres connection string (backup) | Production, Preview, Development |
-| `JWT_SECRET` | Your secure JWT secret | Production, Preview, Development |
+| `DATABASE_URL` | postgres://feed85d59d873fce6d9f0b5971e496bb0f486e5801b6fcefe18c835652e40a24:sk_q5q_l2Lw9Uc32wePMbjdC@db.prisma.io:5432/?sslmode=require | Production, Preview, Development |
+| `POSTGRES_URL` | postgres://feed85d59d873fce6d9f0b5971e496bb0f486e5801b6fcefe18c835652e40a24:sk_q5q_l2Lw9Uc32wePMbjdC@db.prisma.io:5432/?sslmode=require| Production, Preview, Development |
+| `JWT_SECRET` | 8161bba7b2107b99ad442333ed829771487cf0b65095108a82d4620916ef1446 | Production, Preview, Development |
 | `REACT_APP_ZOHO_CLIENT_ID` | Your Zoho client ID | Production, Preview, Development |
 | `REACT_APP_ZOHO_CLIENT_SECRET` | Your Zoho client secret | Production, Preview, Development |
 | `REACT_APP_ZOHO_REFRESH_TOKEN` | Your Zoho refresh token | Production, Preview, Development |

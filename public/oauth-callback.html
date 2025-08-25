@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback - Authorization Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .code-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OAuth Authorization Code</h1>
+        <div id="content">
+            <p>Processing OAuth callback...</p>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+
+        const contentDiv = document.getElementById('content');
+
+        if (error) {
+            contentDiv.innerHTML = `
+                <div class="error">
+                    <h3>OAuth Error</h3>
+                    <p><strong>Error:</strong> ${error}</p>
+                    ${errorDescription ? `<p><strong>Description:</strong> ${errorDescription}</p>` : ''}
+                </div>
+                <button onclick="window.close()">Close</button>
+            `;
+        } else if (code) {
+            contentDiv.innerHTML = `
+                <div class="success">
+                    <h3>✅ Authorization Successful!</h3>
+                    <p>You have successfully authorized the application. Here's your authorization code:</p>
+                </div>
+                
+                <div class="code-box">
+                    <strong>Authorization Code:</strong><br>
+                    ${code}
+                </div>
+
+                <div class="instructions">
+                    <h4>Next Steps:</h4>
+                    <ol>
+                        <li><strong>Copy the authorization code above</strong></li>
+                        <li>Use this curl command to exchange it for a refresh token:</li>
+                    </ol>
+                    
+                    <div class="code-box">
+curl -X POST https://accounts.zoho.com/oauth/v2/token \<br>
+  -d "code=${code}" \<br>
+  -d "client_id=YOUR_CLIENT_ID" \<br>
+  -d "client_secret=YOUR_CLIENT_SECRET" \<br>
+  -d "redirect_uri=https://dc-commissions.vercel.app/oauth-callback.html" \<br>
+  -d "grant_type=authorization_code"
+                    </div>
+                    
+                    <p><strong>Note:</strong> Replace <code>YOUR_CLIENT_SECRET</code> with your actual client secret from the Zoho API Console.</p>
+                </div>
+
+                <button onclick="navigator.clipboard.writeText('${code}')">Copy Authorization Code</button>
+                <button onclick="exchangeToken('${code}')">Exchange for Refresh Token</button>
+                <button onclick="window.close()">Close</button>
+            `;
+        } else {
+            contentDiv.innerHTML = `
+                <div class="error">
+                    <h3>No Authorization Code Found</h3>
+                    <p>No authorization code was found in the URL. Please make sure you're coming from the Zoho OAuth authorization page.</p>
+                </div>
+                <button onclick="window.close()">Close</button>
+            `;
+        }
+
+        async function exchangeToken(code) {
+            try {
+                const response = await fetch('/api/zoho-analytics.mjs?exchangeCode=1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        code: code,
+                        redirect_uri: 'https://dc-commissions.vercel.app/oauth-callback.html'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const refreshToken = result.data?.refresh_token || result.refreshToken;
+                    const accessToken = result.data?.access_token || result.accessToken;
+                    
+                    contentDiv.innerHTML = `
+                        <div class="success">
+                            <h3>🎉 Token Exchange Successful!</h3>
+                            <p>Your refresh token has been generated successfully!</p>
+                        </div>
+                        
+                        <div class="code-box">
+                            <strong>Refresh Token:</strong><br>
+                            ${refreshToken || 'Not found in response'}
+                        </div>
+
+                        <div class="code-box">
+                            <strong>Access Token:</strong><br>
+                            ${accessToken || 'Not found in response'}
+                        </div>
+
+                        <div class="instructions">
+                            <h4>Next Steps:</h4>
+                            <ol>
+                                <li><strong>Copy the refresh token above</strong></li>
+                                <li>Go to your Vercel dashboard</li>
+                                <li>Update the <code>ZOHO_REFRESH_TOKEN</code> environment variable</li>
+                                <li>Redeploy your application</li>
+                            </ol>
+                        </div>
+
+                        <button onclick="navigator.clipboard.writeText('${refreshToken || ''}')">Copy Refresh Token</button>
+                        <button onclick="window.close()">Close</button>
+                    `;
+                } else {
+                    alert('Token exchange failed: ' + (result.error || result.data?.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error exchanging token: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
