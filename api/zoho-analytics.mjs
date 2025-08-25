@@ -57,11 +57,12 @@ export default async function handler(req, res) {
   if (req.method === "GET" && req.query.debug === "1") {
     return res.status(200).json({
       dc: process.env.ZOHO_DC || 'com',
-      refreshTokenSet: !!process.env.REACT_APP_ZOHO_REFRESH_TOKEN,
-      clientIdSet: !!process.env.REACT_APP_ZOHO_CLIENT_ID,
-      clientSecretSet: !!process.env.REACT_APP_ZOHO_CLIENT_SECRET,
-      workspaceIdSet: !!process.env.REACT_APP_ZOHO_WORKSPACE_ID,
-      orgIdSet: !!process.env.REACT_APP_ZOHO_ORG_ID,
+      // prefer server envs; show both for clarity
+      refreshTokenSet: !!(process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN),
+      clientIdSet:     !!(process.env.ZOHO_CLIENT_ID     || process.env.REACT_APP_ZOHO_CLIENT_ID),
+      clientSecretSet: !!(process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET),
+      workspaceIdSet:  !!(process.env.ZOHO_WORKSPACE_ID  || process.env.REACT_APP_ZOHO_WORKSPACE_ID),
+      orgIdSet:        !!(process.env.ZOHO_ORG_ID        || process.env.REACT_APP_ZOHO_ORG_ID),
       accountsHost: `https://accounts.zoho.${process.env.ZOHO_DC || 'com'}`,
       analyticsHost: `https://analyticsapi.zoho.${process.env.ZOHO_DC || 'com'}`
     });
@@ -70,9 +71,9 @@ export default async function handler(req, res) {
   // Test OAuth endpoint
   if (req.method === "GET" && req.query.testOAuth === "1") {
     try {
-      const refreshToken = process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
-      const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
-      const clientSecret = process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
       
       console.log('Testing OAuth with refresh token length:', refreshToken?.length);
       
@@ -104,12 +105,34 @@ export default async function handler(req, res) {
     }
   }
 
+  // Self-test endpoint to check if we can list views
+  if (req.method === "GET" && req.query.selftest === "1") {
+    try {
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      const workspaceId = process.env.ZOHO_WORKSPACE_ID || process.env.REACT_APP_ZOHO_WORKSPACE_ID;
+      const orgId = process.env.ZOHO_ORG_ID || process.env.REACT_APP_ZOHO_ORG_ID;
+      
+      if (!refreshToken || !clientId || !clientSecret || !workspaceId || !orgId) {
+        return res.status(500).json({ ok: false, where: 'selftest', details: 'Missing credentials' });
+      }
+      
+      const token = await getAccessTokenShared({ refreshToken, clientId, clientSecret });
+      const h = headersFor(token, orgId);
+      const r = await axios.get(`${BASE_URL}/workspaces/${workspaceId}/views`, { headers: h });
+      return res.status(200).json({ ok: true, count: r.data?.views?.length, sample: r.data?.views?.slice(0,3) });
+    } catch (e) {
+      return res.status(e?.response?.status || 500).json({ ok: false, where: 'selftest', details: e?.response?.data || String(e) });
+    }
+  }
+
   // Exchange authorization code for refresh token
   if (req.method === "POST" && req.query.exchangeCode === "1") {
     try {
       const { code, redirect_uri } = req.body;
-      const clientId = process.env.REACT_APP_ZOHO_CLIENT_ID;
-      const clientSecret = process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
       
       if (!code || !redirect_uri) {
         return res.status(400).json({
@@ -154,7 +177,11 @@ export default async function handler(req, res) {
     body = {
       tableName: req.query.tableName,
       action: req.query.action,
-      data: req.query.data ? JSON.parse(req.query.data) : undefined,
+      data: (() => {
+        if (!req.query.data) return undefined;
+        try { return JSON.parse(req.query.data); }
+        catch { return undefined; }
+      })(),
       params: {
         id: req.query.id,
         page: req.query.page ? Number(req.query.page) : undefined,
@@ -169,11 +196,12 @@ export default async function handler(req, res) {
   const { tableName, action, data, params } = body || {};
   if (!tableName) return res.status(400).json({ error: "Missing tableName" });
 
-  const refreshToken = process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
-  const clientId     = process.env.REACT_APP_ZOHO_CLIENT_ID;
-  const clientSecret = process.env.REACT_APP_ZOHO_CLIENT_SECRET;
-  const workspaceId  = process.env.REACT_APP_ZOHO_WORKSPACE_ID;
-  const orgId        = process.env.REACT_APP_ZOHO_ORG_ID;
+  // Prefer server-side vars; fall back to REACT_APP_* if those are what you currently have set
+  const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+  const clientId     = process.env.ZOHO_CLIENT_ID     || process.env.REACT_APP_ZOHO_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+  const workspaceId  = process.env.ZOHO_WORKSPACE_ID  || process.env.REACT_APP_ZOHO_WORKSPACE_ID;
+  const orgId        = process.env.ZOHO_ORG_ID        || process.env.REACT_APP_ZOHO_ORG_ID;
   if (!refreshToken || !clientId || !clientSecret || !workspaceId || !orgId) {
     return res.status(500).json({ error: "Zoho Analytics credentials not configured" });
   }
@@ -185,10 +213,17 @@ export default async function handler(req, res) {
   try {
     // READS
     if (req.method === "GET" || (req.method === "POST" && ["records","record"].includes(action))) {
-      const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${tableId}/data`;
+      const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
       const config = { responseFormat: "json", keyValueFormat: true };
-      if (action === "record" && params?.id != null) config.criteria = `"ROWID"=${Number(params.id)}`;
-      if (params?.search) config.criteria = `"${tableName}"."${params.sortBy || "Created_Time"}" LIKE '%${sqlLike(params.search)}%'`;
+      if (action === "record" && params?.id != null) {
+        config.criteria = `"ROWID"=${Number(params.id)}`;
+      }
+      // Only add search if you point at a known TEXT/VARCHAR column.
+      // Example: change "EmployeeName" to your real searchable column.
+      if (params?.search) {
+        const searchCol = process.env.ZOHO_SEARCH_COL || "EmployeeName"; // <- set this in env to something valid
+        config.criteria = `"${searchCol}" LIKE '%${sqlLike(String(params.search))}%'`;
+      }
 
       const doCall = async (forcedTok)=>{
         const h = headersFor(forcedTok, orgId);
@@ -204,7 +239,7 @@ export default async function handler(req, res) {
     // CREATE
     if (req.method === "POST" && !action) {
       if (!data || typeof data !== "object") return res.status(400).json({ error: 'POST requires "data" object' });
-      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${tableId}/rows`;
+      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/rows`;
       const config = { columns: data };
       const doCall = async (forcedTok)=>{
         const h = headersFor(forcedTok, orgId);
@@ -218,7 +253,7 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       const rowId = params?.id;
       if (!rowId || !data || typeof data !== "object") return res.status(400).json({ error: "PUT requires params.id and data" });
-      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${tableId}/rows`;
+      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/rows`;
       const config = { columns: data, criteria: `"ROWID"=${Number(rowId)}` };
       const doCall = async (forcedTok)=>{
         const h = headersFor(forcedTok, orgId);
@@ -232,7 +267,7 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const rowId = params?.id;
       if (!rowId) return res.status(400).json({ error: "DELETE requires params.id" });
-      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${tableId}/rows`;
+      const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/rows`;
       const config = { criteria: `"ROWID"=${Number(rowId)}` };
       const doCall = async (forcedTok)=>{
         const h = headersFor(forcedTok, orgId);
