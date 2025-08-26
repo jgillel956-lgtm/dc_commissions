@@ -614,43 +614,160 @@ export const statusColors: Record<string, string> = {
 
 // Column formatters
 export const columnFormatters: Record<string, (value: any) => string> = {
-  revenue: (value: number) => `$${value.toLocaleString()}`,
-  price: (value: number) => `$${value.toLocaleString()}`,
-  total_amount: (value: number) => `$${value.toLocaleString()}`,
-  amount: (value: number) => `$${value.toLocaleString()}`,
-  base_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
-  max_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
+  revenue: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  price: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  total_amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  base_fee_upcharge: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  max_fee_upcharge: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
   multiplier_upcharge: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(numValue) ? '0.000%' : `${(numValue * 100).toFixed(3)}%`;
   },
-  commission_amount: (value: number) => `$${value.toLocaleString()}`,
+  commission_amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
   commission_percentage: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(numValue) ? '0.0%' : `${numValue.toFixed(1)}%`;
   },
-  interchange_amount: (value: number) => `$${value.toLocaleString()}`,
+  interchange_amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
   interchange_rate: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(numValue) ? '0.0000%' : `${(numValue * 100).toFixed(4)}%`;
   },
-  interest_amount: (value: number) => `$${value.toLocaleString()}`,
-  account_balance: (value: number) => `$${value.toLocaleString()}`,
+  interest_amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
+  account_balance: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString()}`;
+  },
   interest_rate: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(numValue) ? '0.0000%' : `${(numValue * 100).toFixed(4)}%`;
   },
-  due_date: (value: string) => new Date(value).toLocaleDateString(),
-  created_at: (value: string) => new Date(value).toLocaleDateString(),
-  updated_at: (value: string) => new Date(value).toLocaleDateString(),
-  effective_start_date: (value: string) => new Date(value).toLocaleDateString(),
-  effective_end_date: (value: string) => value ? new Date(value).toLocaleDateString() : '-',
-  payment_date: (value: string) => new Date(value).toLocaleDateString(),
-  transaction_period_start: (value: string) => new Date(value).toLocaleDateString(),
-  transaction_period_end: (value: string) => new Date(value).toLocaleDateString(),
-  posted_date: (value: string) => new Date(value).toLocaleDateString(),
-  interest_period_start: (value: string) => new Date(value).toLocaleDateString(),
-  interest_period_end: (value: string) => new Date(value).toLocaleDateString()
+  due_date: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  created_at: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  updated_at: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  effective_start_date: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  effective_end_date: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  payment_date: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  transaction_period_start: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  transaction_period_end: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  posted_date: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  interest_period_start: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  },
+  interest_period_end: (value: string) => {
+    if (!value) return '-';
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  }
 };
 
 // Validation schemas mapping
