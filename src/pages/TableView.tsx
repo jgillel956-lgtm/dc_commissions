@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import DataTable from '../components/tables/DataTable';
 import AddRecordForm from '../components/forms/AddRecordForm';
 import EditRecordForm from '../components/forms/EditRecordForm';
+import EmployeeCommissionAddForm from '../components/forms/EmployeeCommissionAddForm';
 import AuthIntegrationTest from '../components/AuthIntegrationTest';
 import EmployeeCommissionFilters from '../components/filters/EmployeeCommissionFilters';
 import { tableConfigs } from '../config/tableConfigs';
@@ -248,12 +249,20 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         onClose={() => setShowAddModal(false)}
         title={`Add ${tableConfig.name} Record`}
       >
-        <AddRecordForm
-          tableConfig={tableConfig}
-          onSubmit={handleAddRecord}
-          onCancel={() => setShowAddModal(false)}
-          loading={create.isPending}
-        />
+        {activeTable === 'employee_commissions_DC' ? (
+          <EmployeeCommissionAddForm
+            onSubmit={handleAddRecord}
+            onCancel={() => setShowAddModal(false)}
+            loading={create.isPending}
+          />
+        ) : (
+          <AddRecordForm
+            tableConfig={tableConfig}
+            onSubmit={handleAddRecord}
+            onCancel={() => setShowAddModal(false)}
+            loading={create.isPending}
+          />
+        )}
       </Modal>
 
       {/* Edit Record Modal */}
