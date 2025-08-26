@@ -34,6 +34,7 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
       company_id: '',
       commission_percentage: '',
       effective_start_date: '',
+      description: '',
       active: true
     },
     validationSchema: employeeCommissionSchema,
@@ -332,6 +333,19 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
             required
           />
         </div>
+
+        <Input
+          id="description"
+          name="description"
+          type="text"
+          label="Description"
+          value={formik.values.description}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.description && formik.errors.description ? String(formik.errors.description) : undefined}
+          placeholder="Enter description"
+          required
+        />
 
         <Toggle
           id="active"
