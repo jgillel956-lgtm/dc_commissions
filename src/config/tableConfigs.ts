@@ -262,7 +262,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         placeholder: 'Enter description'
       }
     ],
-    displayColumns: ['employee_name', 'employee_id', 'payment_method_name', 'company_name', 'commission_percentage', 'effective_start_date', 'active']
+    displayColumns: ['employee_name', 'employee_id', 'payment_method_id', 'company_id', 'commission_percentage', 'effective_start_date', 'active']
   },
 
   monthly_interchange_income_DC: {
@@ -678,7 +678,15 @@ export const columnFormatters: Record<string, (value: any) => string> = {
   },
   interest_rate: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return isNaN(numValue) ? '0.0000%' : `${(numValue * 100).toFixed(4)}%`;
+    return isNaN(numValue) ? '0.00%' : `${numValue.toFixed(2)}%`;
+  },
+  payment_method_id: (value: any) => {
+    // This will be handled by the lookup data in the component
+    return value || '-';
+  },
+  company_id: (value: any) => {
+    // This will be handled by the lookup data in the component
+    return value || '-';
   },
   due_date: (value: string) => {
     if (!value) return '-';

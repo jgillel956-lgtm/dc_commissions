@@ -40,6 +40,10 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
     validationSchema: employeeCommissionSchema,
     onSubmit: async (values: any) => {
       try {
+        console.log('Form submitted with values:', values);
+        console.log('Form validation errors:', formik.errors);
+        console.log('Form touched fields:', formik.touched);
+        
         if (bulkCreate && selectedCompanies.length > 0 && selectedModalities.length > 0) {
           // Create multiple records for bulk creation
           const records = [];
@@ -54,12 +58,15 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
             }
           }
           
+          console.log('Creating bulk records:', records);
+          
           // Submit all records
           for (const record of records) {
             await onSubmit(record);
           }
         } else {
           // Single record creation
+          console.log('Creating single record:', values);
           await onSubmit(values);
         }
         formik.resetForm();
@@ -372,6 +379,13 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
           type="submit"
           loading={loading}
           disabled={loading || !canCreate}
+          onClick={() => {
+            console.log('Submit button clicked');
+            console.log('Form is valid:', formik.isValid);
+            console.log('Form is dirty:', formik.dirty);
+            console.log('Form values:', formik.values);
+            console.log('Form errors:', formik.errors);
+          }}
         >
           <Plus className="w-4 h-4 mr-2" />
           {bulkCreate ? `Create ${previewRecords} Records` : 'Create Record'}

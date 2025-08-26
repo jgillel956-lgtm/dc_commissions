@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, Edit, Trash2, MoreHorizontal } from 'lucide-rea
 import Button from '../ui/Button';
 import { statusColors, columnFormatters } from '../../config/tableConfigs';
 import { TableConfig } from '../../config/tableConfigs';
+import { useLookupData } from '../../hooks/useZohoData';
 
 interface DataTableProps {
   data: any[];
@@ -32,6 +33,7 @@ const DataTable: React.FC<DataTableProps> = ({
   onPageChange,
 }) => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const lookupData = useLookupData(tableConfig.tableName);
 
   const handleSort = (field: string) => {
     if (!onSort) return;
@@ -59,6 +61,18 @@ const DataTable: React.FC<DataTableProps> = ({
   };
 
   const formatCellValue = (value: any, field: string) => {
+    // Handle lookup fields for employee commissions
+    if (tableConfig.tableName === 'employee_commissions_DC') {
+      if (field === 'payment_method_id' && value) {
+        const paymentMethod = lookupData.paymentMethods?.find((method: any) => method.id.toString() === value.toString());
+        return paymentMethod?.payment_method || value || '-';
+      }
+      if (field === 'company_id' && value) {
+        const company = lookupData.companies?.find((company: any) => company.id.toString() === value.toString());
+        return company?.company || value || '-';
+      }
+    }
+
     const formatter = columnFormatters[field];
     if (formatter) {
       return formatter(value);
