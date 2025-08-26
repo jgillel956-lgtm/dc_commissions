@@ -7,6 +7,7 @@ import DataTable from '../components/tables/DataTable';
 import AddRecordForm from '../components/forms/AddRecordForm';
 import EditRecordForm from '../components/forms/EditRecordForm';
 import AuthIntegrationTest from '../components/AuthIntegrationTest';
+import EmployeeCommissionFilters from '../components/filters/EmployeeCommissionFilters';
 import { tableConfigs } from '../config/tableConfigs';
 import { useZohoData } from '../hooks/useZohoData';
 import { useZohoMutations } from '../hooks/useZohoMutations';
@@ -27,17 +28,50 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState<any>(null);
   const [showAuthTest, setShowAuthTest] = useState(false);
+  
+  // Employee Commission specific filters
+  const [employeeFilters, setEmployeeFilters] = useState({
+    employeeName: '',
+    paymentMethodId: '',
+    companyId: ''
+  });
 
   const tableConfig = tableConfigs[activeTable];
   
-  // Build search parameters
-  const searchParams: SearchParams = useMemo(() => ({
-    page: currentPage,
-    limit: 50,
-    sortBy: sortField,
-    sortOrder,
-    query: searchQuery,
-  }), [currentPage, sortField, sortOrder, searchQuery]);
+  // Build search parameters with filters
+  const searchParams: SearchParams = useMemo(() => {
+    const params: SearchParams = {
+      page: currentPage,
+      limit: 50,
+      sortBy: sortField,
+      sortOrder,
+      search: searchQuery,
+    };
+
+    // Add employee commission specific filters
+    if (activeTable === 'employee_commissions_DC') {
+      if (employeeFilters.employeeName) {
+        params.filters = {
+          ...params.filters,
+          employee_name: employeeFilters.employeeName
+        };
+      }
+      if (employeeFilters.paymentMethodId) {
+        params.filters = {
+          ...params.filters,
+          payment_method_id: employeeFilters.paymentMethodId
+        };
+      }
+      if (employeeFilters.companyId) {
+        params.filters = {
+          ...params.filters,
+          company_id: employeeFilters.companyId
+        };
+      }
+    }
+
+    return params;
+  }, [currentPage, sortField, sortOrder, searchQuery, activeTable, employeeFilters]);
 
   // Use the generic data hook for the active table
   const { data, isLoading, error, refetch } = useZohoData(activeTable, searchParams);
@@ -63,6 +97,22 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     setCurrentPage(page);
   }, []);
 
+  // Handle employee filter changes
+  const handleEmployeeFilterChange = useCallback((filters: any) => {
+    setEmployeeFilters(filters);
+    setCurrentPage(1);
+  }, []);
+
+  // Handle clear employee filters
+  const handleClearEmployeeFilters = useCallback(() => {
+    setEmployeeFilters({
+      employeeName: '',
+      paymentMethodId: '',
+      companyId: ''
+    });
+    setCurrentPage(1);
+  }, []);
+
   // Handle add record
   const handleAddRecord = useCallback(async (values: any) => {
     try {
@@ -75,14 +125,8 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
 
   // Handle edit record
   const handleEditRecord = useCallback(async (values: any) => {
-    if (!editingRecord) return;
-    
     try {
-      await update.mutateAsync({ 
-        id: editingRecord.id, 
-        data: values,
-        oldData: editingRecord // Pass old data for audit logging
-      });
+      await update.mutateAsync({ id: editingRecord.id, ...values });
       setShowEditModal(false);
       setEditingRecord(null);
     } catch (error) {
@@ -92,13 +136,8 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
 
   // Handle delete record
   const handleDeleteRecord = useCallback(async () => {
-    if (!deletingRecord) return;
-    
     try {
-      await deleteMutation.mutateAsync({ 
-        id: deletingRecord.id,
-        deletedData: deletingRecord // Pass deleted data for audit logging
-      });
+      await deleteMutation.mutateAsync(deletingRecord.id);
       setShowDeleteConfirm(false);
       setDeletingRecord(null);
     } catch (error) {
@@ -106,30 +145,13 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     }
   }, [deleteMutation, deletingRecord]);
 
-  // Handle export
-  const handleExport = useCallback(async () => {
-    try {
-      const blob = await exportMutation.mutateAsync({ format: 'csv', params: searchParams });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${activeTable}-export.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-    }
-  }, [exportMutation, searchParams, activeTable]);
-
-  // Handle edit button click
+  // Handle edit click
   const handleEditClick = useCallback((record: any) => {
     setEditingRecord(record);
     setShowEditModal(true);
   }, []);
 
-  // Handle delete button click
+  // Handle delete click
   const handleDeleteClick = useCallback((record: any) => {
     setDeletingRecord(record);
     setShowDeleteConfirm(true);
@@ -140,45 +162,14 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     refetch();
   }, [refetch]);
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h3>
-          <p className="text-red-600 mb-4">{(error as any).message}</p>
-          <Button onClick={handleRefresh} variant="primary">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show no table config error
-  if (!tableConfig) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md">
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2">Table Not Found</h3>
-          <p className="text-yellow-600">No configuration found for table: {activeTable}</p>
-        </div>
-      </div>
-    );
-  }
+  // Handle export
+  const handleExport = useCallback(async () => {
+    try {
+      await exportMutation.mutateAsync({ format: 'csv' });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    }
+  }, [exportMutation]);
 
   const records = data?.data || [];
   const totalPages = data?.total ? Math.ceil(data.total / 50) : 1;
@@ -214,6 +205,15 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         </div>
       </div>
 
+      {/* Employee Commission Specific Filters */}
+      {activeTable === 'employee_commissions_DC' && (
+        <EmployeeCommissionFilters
+          filters={employeeFilters}
+          onFilterChange={handleEmployeeFilterChange}
+          onClearFilters={handleClearEmployeeFilters}
+        />
+      )}
+
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
@@ -248,12 +248,12 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         onClose={() => setShowAddModal(false)}
         title={`Add ${tableConfig.name} Record`}
       >
-                  <AddRecordForm
-            tableConfig={tableConfig}
-            onSubmit={handleAddRecord}
-            onCancel={() => setShowAddModal(false)}
-            loading={create.isPending}
-          />
+        <AddRecordForm
+          tableConfig={tableConfig}
+          onSubmit={handleAddRecord}
+          onCancel={() => setShowAddModal(false)}
+          loading={create.isPending}
+        />
       </Modal>
 
       {/* Edit Record Modal */}
@@ -265,18 +265,16 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         }}
         title={`Edit ${tableConfig.name} Record`}
       >
-        {editingRecord && (
-                      <EditRecordForm
-              tableConfig={tableConfig}
-              record={editingRecord}
-              onSubmit={handleEditRecord}
-              onCancel={() => {
-                setShowEditModal(false);
-                setEditingRecord(null);
-              }}
-              loading={update.isPending}
-            />
-        )}
+        <EditRecordForm
+          tableConfig={tableConfig}
+          record={editingRecord}
+          onSubmit={handleEditRecord}
+          onCancel={() => {
+            setShowEditModal(false);
+            setEditingRecord(null);
+          }}
+          loading={update.isPending}
+        />
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -289,35 +287,33 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         title="Confirm Delete"
       >
         <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-400">
-            Are you sure you want to delete this record? This action cannot be undone.
-          </p>
-          <div className="flex justify-end gap-3">
+          <p>Are you sure you want to delete this record? This action cannot be undone.</p>
+          <div className="flex justify-end space-x-3">
             <Button
+              variant="secondary"
               onClick={() => {
                 setShowDeleteConfirm(false);
                 setDeletingRecord(null);
               }}
-              variant="secondary"
             >
               Cancel
             </Button>
-                          <Button
-                onClick={handleDeleteRecord}
-                variant="danger"
-                loading={deleteMutation.isPending}
-              >
-                Delete
-              </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteRecord}
+              loading={deleteMutation.isPending}
+            >
+              Delete
+            </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Auth Integration Test Modal */}
+      {/* Auth Test Modal */}
       <Modal
         isOpen={showAuthTest}
         onClose={() => setShowAuthTest(false)}
-        title="Auth Integration Test"
+        title="Authentication Test"
       >
         <AuthIntegrationTest />
       </Modal>
