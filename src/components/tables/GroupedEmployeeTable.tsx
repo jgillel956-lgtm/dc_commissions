@@ -47,7 +47,53 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [expandAll, setExpandAll] = useState(false);
+  const [subrowSorting, setSubrowSorting] = useState<Record<string, { field: string; order: 'asc' | 'desc' }>>({});
   const lookupData = useLookupData(tableConfig.tableName);
+
+  // Handle subrow sorting
+  const handleSubrowSort = (employeeKey: string, field: string) => {
+    const currentSort = subrowSorting[employeeKey];
+    const newOrder = currentSort?.field === field && currentSort?.order === 'asc' ? 'desc' : 'asc';
+    
+    setSubrowSorting(prev => ({
+      ...prev,
+      [employeeKey]: { field, order: newOrder }
+    }));
+  };
+
+  // Sort records for a specific employee
+  const getSortedRecords = (records: any[], employeeKey: string) => {
+    const sort = subrowSorting[employeeKey];
+    if (!sort) return records;
+
+    return [...records].sort((a, b) => {
+      let aValue = a[sort.field];
+      let bValue = b[sort.field];
+
+      // Handle special cases
+      if (sort.field === 'payment_method_id') {
+        const aMethod = lookupData.paymentMethods?.find((m: any) => m.id.toString() === aValue?.toString());
+        const bMethod = lookupData.paymentMethods?.find((m: any) => m.id.toString() === bValue?.toString());
+        aValue = aMethod?.payment_method || '';
+        bValue = bMethod?.payment_method || '';
+      } else if (sort.field === 'company_id') {
+        const aCompany = lookupData.companies?.find((c: any) => c.id.toString() === aValue?.toString());
+        const bCompany = lookupData.companies?.find((c: any) => c.id.toString() === bValue?.toString());
+        aValue = aCompany?.company || '';
+        bValue = bCompany?.company || '';
+      } else if (sort.field === 'commission_percentage' || sort.field === 'commission_amount') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      } else if (sort.field === 'effective_start_date') {
+        aValue = new Date(aValue || 0);
+        bValue = new Date(bValue || 0);
+      }
+
+      if (aValue < bValue) return sort.order === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sort.order === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
 
   // Group data by employee
   const groupedData: GroupedData[] = useMemo(() => {
@@ -378,67 +424,67 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
                                 <tr className="border-b border-slate-200">
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('payment_method_id', sortField === 'payment_method_id' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'payment_method_id')}
                                   >
                                     Payment Method
-                                    {sortField === 'payment_method_id' && (
+                                    {subrowSorting[employeeKey]?.field === 'payment_method_id' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('company_id', sortField === 'company_id' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'company_id')}
                                   >
                                     Company
-                                    {sortField === 'company_id' && (
+                                    {subrowSorting[employeeKey]?.field === 'company_id' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('commission_percentage', sortField === 'commission_percentage' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'commission_percentage')}
                                   >
                                     Commission %
-                                    {sortField === 'commission_percentage' && (
+                                    {subrowSorting[employeeKey]?.field === 'commission_percentage' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('commission_amount', sortField === 'commission_amount' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'commission_amount')}
                                   >
                                     Commission Amount
-                                    {sortField === 'commission_amount' && (
+                                    {subrowSorting[employeeKey]?.field === 'commission_amount' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('effective_start_date', sortField === 'effective_start_date' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'effective_start_date')}
                                   >
                                     Start Date
-                                    {sortField === 'effective_start_date' && (
+                                    {subrowSorting[employeeKey]?.field === 'effective_start_date' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
                                   <th 
                                     className="text-left py-2 px-3 font-medium text-slate-600 cursor-pointer hover:bg-slate-50 select-none"
-                                    onClick={() => onSort && onSort('active', sortField === 'active' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => handleSubrowSort(employeeKey, 'active')}
                                   >
                                     Status
-                                    {sortField === 'active' && (
+                                    {subrowSorting[employeeKey]?.field === 'active' && (
                                       <span className="ml-1">
-                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                        {subrowSorting[employeeKey]?.order === 'asc' ? '↑' : '↓'}
                                       </span>
                                     )}
                                   </th>
@@ -446,7 +492,7 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
                                 </tr>
                               </thead>
                               <tbody>
-                                {group.records.map((record) => (
+                                {getSortedRecords(group.records, employeeKey).map((record) => (
                                   <tr key={record.id} className="border-b border-slate-100 hover:bg-white">
                                     <td className="py-2 px-3">
                                       {formatCellValue(record.payment_method_id, 'payment_method_id')}
