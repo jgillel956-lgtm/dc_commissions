@@ -17,12 +17,14 @@ interface EmployeeCommissionFiltersProps {
     companyId: string;
   }) => void;
   onClearFilters: () => void;
+  employeeNames?: string[];
 }
 
 const EmployeeCommissionFilters: React.FC<EmployeeCommissionFiltersProps> = ({
   filters,
   onFilterChange,
-  onClearFilters
+  onClearFilters,
+  employeeNames = []
 }) => {
   const lookupData = useLookupData('employee_commissions_DC');
   
@@ -61,12 +63,17 @@ const EmployeeCommissionFilters: React.FC<EmployeeCommissionFiltersProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Employee Name
           </label>
-          <Input
-            type="text"
-            placeholder="Search employee name..."
+          <Select
             value={filters.employeeName}
-            onChange={(e) => handleFilterChange('employeeName', e.target.value)}
-            className="w-full"
+            onChange={(value) => handleFilterChange('employeeName', value)}
+            options={[
+              { value: '', label: 'All Employees' },
+              ...employeeNames.map((name) => ({
+                value: name,
+                label: name
+              }))
+            ]}
+            placeholder="Select employee"
           />
         </div>
 

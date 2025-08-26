@@ -4,6 +4,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import DataTable from '../components/tables/DataTable';
+import GroupedEmployeeTable from '../components/tables/GroupedEmployeeTable';
 import AddRecordForm from '../components/forms/AddRecordForm';
 import EditRecordForm from '../components/forms/EditRecordForm';
 import EmployeeCommissionAddForm from '../components/forms/EmployeeCommissionAddForm';
@@ -29,6 +30,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState<any>(null);
   const [showAuthTest, setShowAuthTest] = useState(false);
+  const [useGroupedView, setUseGroupedView] = useState(false);
   
   // Employee Commission specific filters
   const [employeeFilters, setEmployeeFilters] = useState({
@@ -127,7 +129,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   // Handle edit record
   const handleEditRecord = useCallback(async (values: any) => {
     try {
-      await update.mutateAsync({ id: editingRecord.id, ...values });
+      await update.mutateAsync({ id: editingRecord.id, data: values, oldData: editingRecord });
       setShowEditModal(false);
       setEditingRecord(null);
     } catch (error) {
@@ -175,6 +177,20 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const records = data?.data || [];
   const totalPages = data?.total ? Math.ceil(data.total / 50) : 1;
 
+  // Get unique employee names for the dropdown
+  const employeeNames = useMemo(() => {
+    if (activeTable === 'employee_commissions_DC') {
+      const names = new Set<string>();
+      records.forEach(record => {
+        if (record.employee_name) {
+          names.add(record.employee_name);
+        }
+      });
+      return Array.from(names).sort();
+    }
+    return [];
+  }, [records, activeTable]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -208,11 +224,25 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
 
       {/* Employee Commission Specific Filters */}
       {activeTable === 'employee_commissions_DC' && (
-        <EmployeeCommissionFilters
-          filters={employeeFilters}
-          onFilterChange={handleEmployeeFilterChange}
-          onClearFilters={handleClearEmployeeFilters}
-        />
+        <div className="space-y-4">
+          <EmployeeCommissionFilters
+            filters={employeeFilters}
+            onFilterChange={handleEmployeeFilterChange}
+            onClearFilters={handleClearEmployeeFilters}
+            employeeNames={employeeNames}
+          />
+          {!useGroupedView && (
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setUseGroupedView(true)}
+                variant="secondary"
+                size="sm"
+              >
+                Grouped View
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Search and Filters */}
@@ -232,16 +262,36 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
       </div>
 
       {/* Data Table */}
-      <DataTable
-        data={records}
-        tableConfig={tableConfig}
-        onSort={handleSort}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
+      {activeTable === 'employee_commissions_DC' && useGroupedView ? (
+        <GroupedEmployeeTable
+          data={records}
+          tableConfig={tableConfig}
+          loading={isLoading}
+          onSort={handleSort}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onToggleView={() => setUseGroupedView(false)}
+        />
+      ) : (
+        <DataTable
+          data={records}
+          tableConfig={tableConfig}
+          loading={isLoading}
+          onSort={handleSort}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
 
       {/* Add Record Modal */}
       <Modal

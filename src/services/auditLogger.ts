@@ -379,8 +379,8 @@ export class AuditLogger {
       entry.userAgent = navigator.userAgent;
       entry.sessionId = this.getSessionId();
 
-      // Get authentication token from session storage
-      const token = sessionStorage.getItem('auth_token');
+      // Get authentication token from localStorage (SessionManager)
+      const token = localStorage.getItem('authToken');
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

@@ -29,7 +29,31 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
   
   const formik = useFormik({
     initialValues: tableConfig.fields.reduce((acc: Record<string, any>, field: FieldConfig) => {
-      acc[field.key] = record[field.key] || '';
+      let value = record[field.key] || '';
+      
+      // Handle date formatting for date fields
+      if (field.type === 'date' && value) {
+        // Convert various date formats to yyyy-MM-dd
+        if (typeof value === 'string') {
+          // Handle "26 Aug 2025 00:00:00" format
+          if (value.includes('Aug') || value.includes('Jan') || value.includes('Feb') || 
+              value.includes('Mar') || value.includes('Apr') || value.includes('May') || 
+              value.includes('Jun') || value.includes('Jul') || value.includes('Sep') || 
+              value.includes('Oct') || value.includes('Nov') || value.includes('Dec')) {
+            try {
+              const date = new Date(value);
+              if (!isNaN(date.getTime())) {
+                value = date.toISOString().split('T')[0]; // yyyy-MM-dd format
+              }
+            } catch (e) {
+              console.warn('Failed to parse date:', value);
+              value = '';
+            }
+          }
+        }
+      }
+      
+      acc[field.key] = value;
       return acc;
     }, {} as Record<string, any>),
     validationSchema,

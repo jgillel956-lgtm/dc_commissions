@@ -411,10 +411,42 @@ export const zohoApi = {
       return mockApi.addRecord(tableName, data);
     }
 
+    // Format dates for Zoho Analytics API
+    const formattedData = { ...data };
+    Object.keys(formattedData).forEach(key => {
+      const value = formattedData[key];
+      if (value && typeof value === 'string' && value.includes('T')) {
+        // If it's already in ISO format, convert to yyyy-MM-dd
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formattedData[key] = date.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Failed to format date:', value);
+        }
+      } else if (value && typeof value === 'string' && (
+        value.includes('Aug') || value.includes('Jan') || value.includes('Feb') || 
+        value.includes('Mar') || value.includes('Apr') || value.includes('May') || 
+        value.includes('Jun') || value.includes('Jul') || value.includes('Sep') || 
+        value.includes('Oct') || value.includes('Nov') || value.includes('Dec')
+      )) {
+        // Handle "26 Aug 2025 00:00:00" format
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formattedData[key] = date.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Failed to parse date:', value);
+        }
+      }
+    });
+
     try {
       const response = await zohoAxios.post('/api/zoho-analytics.mjs', {
         tableName,
-        data
+        data: formattedData
       });
 
       // Log the create operation for audit
@@ -424,7 +456,7 @@ export const zohoApi = {
           'Unknown User',
           tableName,
           response.data?.id || 'unknown',
-          data
+          formattedData
         );
       } catch (error) {
         console.error('Audit logging failed:', error);
@@ -439,6 +471,8 @@ export const zohoApi = {
 
   // Update an existing record
   updateRecord: async <T>(tableName: string, id: string, data: any): Promise<T> => {
+    console.log('updateRecord called with:', { tableName, id, data });
+    
     // Get the old data for audit logging
     let oldData: any = {};
     try {
@@ -459,12 +493,54 @@ export const zohoApi = {
       return result as T;
     }
 
+    // Format dates for Zoho Analytics API
+    console.log('Original data received in updateRecord:', data);
+    const formattedData = { ...data };
+    console.log('Formatted data before processing:', formattedData);
+    Object.keys(formattedData).forEach(key => {
+      const value = formattedData[key];
+      if (value && typeof value === 'string' && value.includes('T')) {
+        // If it's already in ISO format, convert to yyyy-MM-dd
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formattedData[key] = date.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Failed to format date:', value);
+        }
+      } else if (value && typeof value === 'string' && (
+        value.includes('Aug') || value.includes('Jan') || value.includes('Feb') || 
+        value.includes('Mar') || value.includes('Apr') || value.includes('May') || 
+        value.includes('Jun') || value.includes('Jul') || value.includes('Sep') || 
+        value.includes('Oct') || value.includes('Nov') || value.includes('Dec')
+      )) {
+        // Handle "26 Aug 2025 00:00:00" format
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            formattedData[key] = date.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.warn('Failed to parse date:', value);
+        }
+      }
+    });
+
+    console.log('Formatted data after date processing:', formattedData);
+
     try {
-      const response = await zohoAxios.put('/api/zoho-analytics.mjs', {
-        tableName,
-        data,
-        params: { id }
-      });
+      console.log('Sending update request:', { tableName, id, formattedData });
+      
+      // For PUT requests, we need to send data as query parameters
+      const queryParams = new URLSearchParams();
+      queryParams.append('tableName', tableName);
+      queryParams.append('id', id);
+      queryParams.append('data', JSON.stringify(formattedData));
+      
+      const response = await zohoAxios.put(`/api/zoho-analytics.mjs?${queryParams.toString()}`);
+
+      console.log('Update response received:', response.data);
 
       // Log the update operation for audit
       try {
@@ -474,7 +550,7 @@ export const zohoApi = {
           tableName,
           id,
           oldData,
-          data
+          formattedData
         );
       } catch (error) {
         console.error('Audit logging failed:', error);
@@ -483,6 +559,7 @@ export const zohoApi = {
       return response.data as T;
     } catch (error: any) {
       console.error(`Error updating ${tableName} record:`, error);
+      console.error('Error details:', error.response?.data || error.message);
       throw error;
     }
   },

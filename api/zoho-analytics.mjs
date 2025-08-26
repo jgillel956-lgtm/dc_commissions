@@ -289,6 +289,109 @@ export default async function handler(req, res) {
     }
   }
 
+  // Diagnostic endpoint to check if a row exists
+  if (req.method === "GET" && req.query.selftest === "rowExists") {
+    try {
+      const { tableName, rowId } = req.query;
+      if (!tableName || !rowId) {
+        return res.status(400).json({ error: "Missing tableName or rowId" });
+      }
+      
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      const workspaceId = process.env.ZOHO_WORKSPACE_ID || process.env.REACT_APP_ZOHO_WORKSPACE_ID;
+      const orgId = process.env.ZOHO_ORG_ID || process.env.REACT_APP_ZOHO_ORG_ID;
+      
+      const token = await getAccessTokenShared({ refreshToken, clientId, clientSecret });
+      const h = headersFor(token, orgId);
+      
+      // Use the known table ID directly instead of searching
+      const tableId = TABLE_IDS[tableName];
+      if (!tableId) {
+        return res.status(404).json({ error: `Table ${tableName} not found in TABLE_IDS mapping` });
+      }
+      
+      const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
+      const checkCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
+      const r = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(checkCfg) } });
+      
+      return res.status(200).json({ 
+        ok: true, 
+        rowExists: Array.isArray(r.data?.data) && r.data.data.length > 0,
+        rowData: r.data?.data?.[0] || null,
+        totalRows: r.data?.data?.length || 0,
+        tableId: tableId,
+        workspaceId: workspaceId
+      });
+    } catch (e) {
+      return res.status(e?.response?.status || 500).json({ 
+        ok: false, 
+        error: "Row check failed", 
+        details: e?.response?.data || String(e) 
+      });
+    }
+  }
+
+  // Diagnostic endpoint to get view info
+  if (req.method === "GET" && req.query.selftest === "viewInfo") {
+    try {
+      const { workspaceId, viewId } = req.query;
+      if (!workspaceId || !viewId) {
+        return res.status(400).json({ error: "Missing workspaceId or viewId" });
+      }
+      
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      
+      const token = await getAccessTokenShared({ refreshToken, clientId, clientSecret });
+      const h = { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" };
+      const url = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(viewId)}`;
+      const r = await axios.get(url, { headers: h });
+      return res.status(200).json({ ok: true, viewInfo: r.data });
+    } catch (e) {
+      return res.status(e?.response?.status || 500).json({ 
+        ok: false, 
+        details: e?.response?.data || String(e) 
+      });
+    }
+  }
+
+  // Diagnostic endpoint to get columns info
+  if (req.method === "GET" && req.query.selftest === "columns") {
+    try {
+      const { workspaceId, viewId } = req.query;
+      if (!workspaceId || !viewId) {
+        return res.status(400).json({ error: "Missing workspaceId or viewId" });
+      }
+      
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      
+      const token = await getAccessTokenShared({ refreshToken, clientId, clientSecret });
+      const h = { Authorization: `Zoho-oauthtoken ${token}`, "Content-Type": "application/json" };
+      const url = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(viewId)}/columns`;
+      const r = await axios.get(url, { headers: h });
+      
+      // Return just the useful bits
+      const cols = (r.data?.columns || []).map(c => ({
+        name: c.columnName || c.name,
+        label: c.displayName || c.label,
+        dataType: c.dataType,
+        editable: c.isEditable ?? !c.isFormula,
+        isFormula: !!c.isFormula,
+      }));
+      return res.status(200).json({ ok: true, columns: cols });
+    } catch (e) {
+      return res.status(e?.response?.status || 500).json({ 
+        ok: false, 
+        details: e?.response?.data || String(e) 
+      });
+    }
+  }
+
   // List workspaces endpoint
   if (req.method === "GET" && req.query.listWorkspaces === "1") {
     try {
@@ -534,16 +637,93 @@ export default async function handler(req, res) {
 
     // UPDATE
     if (req.method === "PUT") {
-      const rowId = params?.id;
-      if (!rowId || !data || typeof data !== "object") return res.status(400).json({ error: "PUT requires params.id and data" });
+      const rowId = Number(params?.id);
+      if (!rowId || !data || typeof data !== "object") {
+        return res.status(400).json({ error: "PUT requires numeric params.id and data" });
+      }
+
       const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/rows`;
-      const config = { columns: data, criteria: `"ROWID"=${Number(rowId)}` };
-      const doCall = async (forcedTok)=>{
+
+      // 1) Confirm the row exists
+      try {
+        const token = await getAccessTokenShared(cfg);
+        const h = headersFor(token, orgId);
+        const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
+        const checkCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
+        const r0 = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(checkCfg) } });
+        if (!Array.isArray(r0.data?.data) || r0.data.data.length === 0) {
+          return res.status(404).json({ error: "Row not found for this view/workspace", rowId });
+        }
+      } catch (e) {
+        const status = e?.response?.status || 500;
+        return res.status(status).json({ error: "Precheck failed", details: e?.response?.data || String(e) });
+      }
+
+      // 2) Fetch columns to filter editable + coerce types
+      let editableSet = null, typeMap = null;
+      try {
+        const token = await getAccessTokenShared(cfg);
+        const h = headersFor(token, orgId);
+        const colUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/columns`;
+        const r = await axios.get(colUrl, { headers: h });
+        const cols = r.data?.columns || [];
+        editableSet = new Set(
+          cols.filter(c => (c.isEditable ?? !c.isFormula)).map(c => c.columnName || c.name)
+        );
+        typeMap = Object.fromEntries(
+          cols.map(c => [c.columnName || c.name, c.dataType])
+        );
+      } catch { /* if this fails, let Zoho validate */ }
+
+      // 3) Build a safe column set
+      const outgoing = {};
+      for (const [k, v] of Object.entries(data)) {
+        if (editableSet && !editableSet.has(k)) continue; // skip non-editable/unknown
+        const t = typeMap?.[k];
+        if (t === 'NUMBER' || t === 'DOUBLE' || t === 'DECIMAL' || t === 'CURRENCY') {
+          if (typeof v === 'string') {
+            const n = Number(String(v).replace(/,/g, ''));
+            if (!Number.isFinite(n)) continue;
+            outgoing[k] = n;
+          } else {
+            outgoing[k] = v;
+          }
+        } else if (t === 'DATE' || t === 'DATETIME') {
+          // Make sure you send "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+          outgoing[k] = v;
+        } else {
+          outgoing[k] = v;
+        }
+      }
+
+      if (Object.keys(outgoing).length === 0) {
+        return res.status(400).json({ error: "No editable columns in payload", sentKeys: Object.keys(data) });
+      }
+
+      const config = {
+        columns: outgoing,
+        criteria: `id=${rowId}`,
+        // columnDateFormat: "yyyy-MM-dd", // uncomment if you're updating DATE from strings
+        // columnDateTimeFormat: "yyyy-MM-dd HH:mm:ss"
+      };
+
+      const doCall = async (forcedTok) => {
         const h = headersFor(forcedTok, orgId);
         return axios.put(rowsUrl, null, { headers: h, params: { CONFIG: JSON.stringify(config) } });
       };
-      const resp = await withTokenRetry(doCall, cfg);
-      return res.status(200).json({ success: true, data: resp.data });
+
+      try {
+        const resp = await withTokenRetry(doCall, cfg);
+        return res.status(200).json({ success: true, data: resp.data });
+      } catch (e) {
+        const status = e?.response?.status || 500;
+        const body = e?.response?.data;
+        return res.status(status).json({
+          error: "Zoho UPDATE failed",
+          sentConfig: config,
+          upstream: typeof body === 'string' ? body.slice(0, 1000) : body
+        });
+      }
     }
 
     // DELETE
