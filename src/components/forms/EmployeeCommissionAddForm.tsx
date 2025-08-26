@@ -93,11 +93,27 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
     }
   };
 
+  const handleSelectAllCompanies = (checked: boolean) => {
+    if (checked) {
+      setSelectedCompanies(lookupData.companies?.map((company: any) => company.id.toString()) || []);
+    } else {
+      setSelectedCompanies([]);
+    }
+  };
+
+  const handleSelectAllModalities = (checked: boolean) => {
+    if (checked) {
+      setSelectedModalities(lookupData.paymentMethods?.map((method: any) => method.id.toString()) || []);
+    } else {
+      setSelectedModalities([]);
+    }
+  };
+
   const previewRecords = selectedCompanies.length * selectedModalities.length;
   const canCreate = !bulkCreate || (selectedCompanies.length > 0 && selectedModalities.length > 0);
 
   return (
-    <form onSubmit={formik.handleSubmit} className="space-y-6">
+    <form onSubmit={formik.handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto">
       {/* Basic Employee Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -207,7 +223,21 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
               <Building className="w-5 h-5 mr-2" />
               Select Companies
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            
+            {/* Select All Companies */}
+            <div className="border-b border-gray-200 pb-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedCompanies.length === (lookupData.companies?.length || 0) && selectedCompanies.length > 0}
+                  onChange={(e) => handleSelectAllCompanies(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Select All Companies</span>
+              </label>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-32 overflow-y-auto">
               {lookupData.companies?.map((company: any) => (
                 <label key={company.id} className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -228,7 +258,21 @@ const EmployeeCommissionAddForm: React.FC<EmployeeCommissionAddFormProps> = ({
               <CreditCard className="w-5 h-5 mr-2" />
               Select Payment Methods
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            
+            {/* Select All Payment Methods */}
+            <div className="border-b border-gray-200 pb-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedModalities.length === (lookupData.paymentMethods?.length || 0) && selectedModalities.length > 0}
+                  onChange={(e) => handleSelectAllModalities(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Select All Payment Methods</span>
+              </label>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-32 overflow-y-auto">
               {lookupData.paymentMethods?.map((method: any) => (
                 <label key={method.id} className="flex items-center space-x-2 cursor-pointer">
                   <input
