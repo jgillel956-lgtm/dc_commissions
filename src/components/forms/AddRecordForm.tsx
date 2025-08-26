@@ -15,6 +15,8 @@ interface AddRecordFormProps {
   onSubmit: (values: any) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  initialValues?: Record<string, any>;
+  readOnlyFields?: string[];
 }
 
 const AddRecordForm: React.FC<AddRecordFormProps> = ({
@@ -22,23 +24,28 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
   onSubmit,
   onCancel,
   loading = false,
+  initialValues = {},
+  readOnlyFields = [],
 }) => {
   const validationSchema = validationSchemas[tableConfig.name.toLowerCase() as keyof typeof validationSchemas];
   const lookupData = useLookupData(tableConfig.tableName);
   
   const formik = useFormik({
-    initialValues: tableConfig.fields.reduce((acc: Record<string, any>, field: FieldConfig) => {
-      // Set default value for active fields to true
-      if (field.key === 'active') {
-        acc[field.key] = true;
-      } else if (field.key === 'employee_id' && tableConfig.tableName === 'employee_commissions_DC') {
-        // Auto-generate employee ID (simple increment from current max)
-        acc[field.key] = Math.floor(Math.random() * 1000) + 100; // Random ID between 100-1099
-      } else {
-        acc[field.key] = '';
-      }
-      return acc;
-    }, {} as Record<string, any>),
+    initialValues: {
+      ...tableConfig.fields.reduce((acc: Record<string, any>, field: FieldConfig) => {
+        // Set default value for active fields to true
+        if (field.key === 'active') {
+          acc[field.key] = true;
+        } else if (field.key === 'employee_id' && tableConfig.tableName === 'employee_commissions_DC') {
+          // Auto-generate employee ID (simple increment from current max)
+          acc[field.key] = Math.floor(Math.random() * 1000) + 100; // Random ID between 100-1099
+        } else {
+          acc[field.key] = '';
+        }
+        return acc;
+      }, {} as Record<string, any>),
+      ...initialValues // Override with provided initial values
+    },
     validationSchema,
     onSubmit: async (values: any) => {
       try {
@@ -74,14 +81,16 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
     const { key, label, type, required, options } = field;
     const value = formik.values[key];
     const error = formik.touched[key] && formik.errors[key];
+    const isReadOnly = readOnlyFields.includes(key);
     
     const commonProps = {
       id: key,
       name: key,
       value: value || '',
-      onChange: formik.handleChange,
+      onChange: isReadOnly ? undefined : formik.handleChange,
       onBlur: formik.handleBlur,
       required,
+      disabled: isReadOnly,
     };
 
     switch (type) {

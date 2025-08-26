@@ -604,11 +604,35 @@ export default async function handler(req, res) {
       if (action === "record" && params?.id != null) {
         config.criteria = `"ROWID"=${Number(params.id)}`;
       }
-      // Only add search if you point at a known TEXT/VARCHAR column.
-      // Example: change "EmployeeName" to your real searchable column.
+      // Build criteria for filtering
+      const criteriaParts = [];
+      
+      // Add search criteria
       if (params?.search) {
-        const searchCol = process.env.ZOHO_SEARCH_COL || "EmployeeName"; // <- set this in env to something valid
-        config.criteria = `"${searchCol}" LIKE '%${sqlLike(String(params.search))}%'`;
+        const searchCol = process.env.ZOHO_SEARCH_COL || "employee_name"; // Default to employee_name
+        criteriaParts.push(`"${searchCol}" LIKE '%${sqlLike(String(params.search))}%'`);
+      }
+      
+      // Add specific filter criteria
+      if (params?.filters) {
+        const filters = params.filters;
+        
+        if (filters.employee_name) {
+          criteriaParts.push(`"employee_name" = '${sqlLike(String(filters.employee_name))}'`);
+        }
+        
+        if (filters.payment_method_id) {
+          criteriaParts.push(`"payment_method_id" = ${Number(filters.payment_method_id)}`);
+        }
+        
+        if (filters.company_id) {
+          criteriaParts.push(`"company_id" = ${Number(filters.company_id)}`);
+        }
+      }
+      
+      // Combine all criteria with AND
+      if (criteriaParts.length > 0) {
+        config.criteria = criteriaParts.join(' AND ');
       }
 
       const doCall = async (forcedTok)=>{
@@ -649,8 +673,16 @@ export default async function handler(req, res) {
         const token = await getAccessTokenShared(cfg);
         const h = headersFor(token, orgId);
         const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
-        const checkCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
-        const r0 = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(checkCfg) } });
+        // Try both 'id' and 'ROWID' as the primary key column
+        let checkCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
+        let r0 = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(checkCfg) } });
+        
+        if (!Array.isArray(r0.data?.data) || r0.data.data.length === 0) {
+          // Try with ROWID if id didn't work
+          checkCfg = { responseFormat: "json", keyValueFormat: true, criteria: `ROWID=${rowId}` };
+          r0 = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(checkCfg) } });
+        }
+        
         if (!Array.isArray(r0.data?.data) || r0.data.data.length === 0) {
           return res.status(404).json({ error: "Row not found for this view/workspace", rowId });
         }
@@ -700,9 +732,24 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "No editable columns in payload", sentKeys: Object.keys(data) });
       }
 
+      // Determine the correct primary key column by testing both
+      let primaryKeyColumn = 'id';
+      try {
+        const token = await getAccessTokenShared(cfg);
+        const h = headersFor(token, orgId);
+        const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
+        const testCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
+        const testResp = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(testCfg) } });
+        if (!Array.isArray(testResp.data?.data) || testResp.data.data.length === 0) {
+          primaryKeyColumn = 'ROWID';
+        }
+      } catch {
+        primaryKeyColumn = 'ROWID';
+      }
+
       const config = {
         columns: outgoing,
-        criteria: `id=${rowId}`,
+        criteria: `${primaryKeyColumn}=${rowId}`,
         // columnDateFormat: "yyyy-MM-dd", // uncomment if you're updating DATE from strings
         // columnDateTimeFormat: "yyyy-MM-dd HH:mm:ss"
       };
@@ -730,14 +777,50 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const rowId = params?.id;
       if (!rowId) return res.status(400).json({ error: "DELETE requires params.id" });
+      
+      console.log(`DELETE request for table ${tableName}, rowId: ${rowId}`);
+      
       const rowsUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/rows`;
-      const config = { criteria: `"ROWID"=${Number(rowId)}` };
+      
+      // Determine the correct primary key column by testing both
+      let primaryKeyColumn = 'id';
+      try {
+        const token = await getAccessTokenShared(cfg);
+        const h = headersFor(token, orgId);
+        const dataUrl = `${BASE_URL}/workspaces/${workspaceId}/views/${encodeURIComponent(tableId)}/data`;
+        const testCfg = { responseFormat: "json", keyValueFormat: true, criteria: `id=${rowId}` };
+        const testResp = await axios.get(dataUrl, { headers: h, params: { CONFIG: JSON.stringify(testCfg) } });
+        if (!Array.isArray(testResp.data?.data) || testResp.data.data.length === 0) {
+          primaryKeyColumn = 'ROWID';
+        }
+      } catch {
+        primaryKeyColumn = 'ROWID';
+      }
+      
+      const config = { criteria: `${primaryKeyColumn}=${rowId}` };
+      
+      console.log('DELETE config:', config);
+      
       const doCall = async (forcedTok)=>{
         const h = headersFor(forcedTok, orgId);
         return axios.delete(rowsUrl, { headers: h, params: { CONFIG: JSON.stringify(config) } });
       };
-      const resp = await withTokenRetry(doCall, cfg);
-      return res.status(200).json({ success: true, data: resp.data });
+      
+      try {
+        const resp = await withTokenRetry(doCall, cfg);
+        console.log('DELETE response:', resp.data);
+        return res.status(200).json({ success: true, data: resp.data });
+      } catch (error) {
+        console.error('DELETE error:', error.response?.data || error.message);
+        const status = error?.response?.status || 500;
+        const details = error?.response?.data || String(error);
+        return res.status(status).json({ 
+          error: "DELETE failed", 
+          details,
+          sentConfig: config,
+          upstream: typeof details === 'string' ? details.slice(0, 1000) : details
+        });
+      }
     }
 
     return res.status(400).json({ error: "Unsupported method/action" });

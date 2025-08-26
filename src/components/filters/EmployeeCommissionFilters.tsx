@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter, X } from 'lucide-react';
 import Input from '../ui/Input';
-import Select from '../ui/Select';
+import SearchableSelect from '../ui/SearchableSelect';
 import Button from '../ui/Button';
 import { useLookupData } from '../../hooks/useZohoData';
 
@@ -60,10 +60,7 @@ const EmployeeCommissionFilters: React.FC<EmployeeCommissionFiltersProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Employee Name Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Employee Name
-          </label>
-          <Select
+          <SearchableSelect
             value={filters.employeeName}
             onChange={(value) => handleFilterChange('employeeName', value)}
             options={[
@@ -79,10 +76,7 @@ const EmployeeCommissionFilters: React.FC<EmployeeCommissionFiltersProps> = ({
 
         {/* Payment Method Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Method
-          </label>
-          <Select
+          <SearchableSelect
             value={filters.paymentMethodId}
             onChange={(value) => handleFilterChange('paymentMethodId', value)}
             options={[
@@ -98,10 +92,7 @@ const EmployeeCommissionFilters: React.FC<EmployeeCommissionFiltersProps> = ({
 
         {/* Company Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Company
-          </label>
-          <Select
+          <SearchableSelect
             value={filters.companyId}
             onChange={(value) => handleFilterChange('companyId', value)}
             options={[

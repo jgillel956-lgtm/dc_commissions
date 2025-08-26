@@ -270,6 +270,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
           onSort={handleSort}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
+          onAdd={handleAddRecord}
           sortField={sortField}
           sortOrder={sortOrder}
           currentPage={currentPage}
@@ -298,6 +299,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         title={`Add ${tableConfig.name} Record`}
+        size={activeTable === 'employee_commissions_DC' ? 'xl' : undefined}
       >
         {activeTable === 'employee_commissions_DC' ? (
           <EmployeeCommissionAddForm

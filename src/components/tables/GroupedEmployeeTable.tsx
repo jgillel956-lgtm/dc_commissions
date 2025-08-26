@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Edit, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Edit, Trash2, Plus } from 'lucide-react';
 import Button from '../ui/Button';
 import { statusColors, columnFormatters } from '../../config/tableConfigs';
 import { TableConfig } from '../../config/tableConfigs';
 import { useLookupData } from '../../hooks/useZohoData';
+import EmployeeCommissionAddCompanyForm from '../forms/EmployeeCommissionAddCompanyForm';
+import Modal from '../ui/Modal';
 
 interface GroupedEmployeeTableProps {
   data: any[];
@@ -11,6 +13,7 @@ interface GroupedEmployeeTableProps {
   loading?: boolean;
   onEdit?: (record: any) => void;
   onDelete?: (record: any) => void;
+  onAdd?: (record: any) => void;
   onSort?: (field: string, order: 'asc' | 'desc') => void;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
@@ -36,6 +39,7 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
   loading = false,
   onEdit,
   onDelete,
+  onAdd,
   onSort,
   sortField,
   sortOrder,
@@ -48,7 +52,27 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [expandAll, setExpandAll] = useState(false);
   const [subrowSorting, setSubrowSorting] = useState<Record<string, { field: string; order: 'asc' | 'desc' }>>({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const lookupData = useLookupData(tableConfig.tableName);
+
+  // Handle add company modal
+  const handleAddCompany = (employee: any) => {
+    setSelectedEmployee(employee);
+    setShowAddModal(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    setSelectedEmployee(null);
+  };
+
+  const handleAddRecord = async (values: any) => {
+    if (onAdd && selectedEmployee) {
+      await onAdd(values);
+      handleCloseAddModal();
+    }
+  };
 
   // Handle subrow sorting
   const handleSubrowSort = (employeeKey: string, field: string) => {
@@ -415,8 +439,21 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
                     <>
                       <tr className="bg-slate-50">
                         <td colSpan={8} className="px-6 py-4">
-                          <div className="text-sm font-medium text-slate-700 mb-3">
-                            Commission Records for {group.employeeName}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-sm font-medium text-slate-700">
+                              Commission Records for {group.employeeName}
+                            </div>
+                            {onAdd && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleAddCompany(group)}
+                                className="flex items-center gap-2"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Add Company
+                              </Button>
+                            )}
                           </div>
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
@@ -610,6 +647,24 @@ const GroupedEmployeeTable: React.FC<GroupedEmployeeTableProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Company Modal */}
+      {showAddModal && selectedEmployee && (
+        <Modal
+          isOpen={showAddModal}
+          onClose={handleCloseAddModal}
+          title={`Add Company for ${selectedEmployee.employeeName}`}
+          size="xl"
+        >
+          <EmployeeCommissionAddCompanyForm
+            onSubmit={handleAddRecord}
+            onCancel={handleCloseAddModal}
+            employeeName={selectedEmployee.employeeName}
+            employeeId={selectedEmployee.employeeId}
+            existingRecords={selectedEmployee.records}
+          />
+        </Modal>
       )}
     </div>
   );

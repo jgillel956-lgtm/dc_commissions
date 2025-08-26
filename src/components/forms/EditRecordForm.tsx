@@ -149,11 +149,16 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
       case 'select':
         return (
           <Select
-            {...commonProps}
+            id={key}
+            name={key}
+            value={value || ''}
+            onChange={(selectedValue) => formik.setFieldValue(key, selectedValue)}
+            onBlur={() => formik.handleBlur({ target: { name: key } })}
             label={label}
             error={error as string}
             options={getFieldOptions(field)}
             placeholder={`Select ${label.toLowerCase()}`}
+            required={required}
           />
         );
         
