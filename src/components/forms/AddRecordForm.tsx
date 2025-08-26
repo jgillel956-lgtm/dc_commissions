@@ -5,6 +5,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import Toggle from '../ui/Toggle';
 import { TableConfig, FieldConfig } from '../../config/tableConfigs';
 import { validationSchemas } from '../../config/tableConfigs';
 import { useLookupData } from '../../hooks/useZohoData';
@@ -27,7 +28,15 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
   
   const formik = useFormik({
     initialValues: tableConfig.fields.reduce((acc: Record<string, any>, field: FieldConfig) => {
-      acc[field.key] = '';
+      // Set default value for active fields to true
+      if (field.key === 'active') {
+        acc[field.key] = true;
+      } else if (field.key === 'employee_id' && tableConfig.tableName === 'employee_commissions_DC') {
+        // Auto-generate employee ID (simple increment from current max)
+        acc[field.key] = Math.floor(Math.random() * 1000) + 100; // Random ID between 100-1099
+      } else {
+        acc[field.key] = '';
+      }
       return acc;
     }, {} as Record<string, any>),
     validationSchema,
@@ -129,6 +138,19 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
             error={error as string}
             options={getFieldOptions(field)}
             placeholder={`Select ${label.toLowerCase()}`}
+          />
+        );
+        
+      case 'toggle':
+        return (
+          <Toggle
+            id={key}
+            name={key}
+            checked={value || false}
+            onChange={(checked) => formik.setFieldValue(key, checked)}
+            onBlur={() => formik.handleBlur({ target: { name: key } })}
+            label={label}
+            error={error as string}
           />
         );
         

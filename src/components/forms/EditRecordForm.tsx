@@ -4,6 +4,7 @@ import { Save, Loader2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import Toggle from '../ui/Toggle';
 import { TableConfig, FieldConfig } from '../../config/tableConfigs';
 import { validationSchemas } from '../../config/tableConfigs';
 import { useLookupData } from '../../hooks/useZohoData';
@@ -129,6 +130,19 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
             error={error as string}
             options={getFieldOptions(field)}
             placeholder={`Select ${label.toLowerCase()}`}
+          />
+        );
+        
+      case 'toggle':
+        return (
+          <Toggle
+            id={key}
+            name={key}
+            checked={value || false}
+            onChange={(checked) => formik.setFieldValue(key, checked)}
+            onBlur={() => formik.handleBlur({ target: { name: key } })}
+            label={label}
+            error={error as string}
           />
         );
         

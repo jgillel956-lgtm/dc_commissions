@@ -201,6 +201,10 @@ export const useLookupData = (tableName: string) => {
         return {
           companies: companies?.data || []
         };
+      case 'vendor_costs_DC':
+        return {
+          companies: companies?.data || []
+        };
       default:
         return {};
     }

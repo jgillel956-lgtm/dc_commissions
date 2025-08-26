@@ -60,8 +60,8 @@ export const monthlyInterchangeIncomeSchema = yup.object({
   payment_date: yup.date().required('Payment date is required'),
   transaction_period_start: yup.date().required('Transaction period start is required'),
   transaction_period_end: yup.date().required('Transaction period end is required'),
-  transaction_count: yup.number().min(0, 'Transaction count must be positive').required('Transaction count is required'),
-  interchange_rate: yup.number().min(0, 'Interchange rate must be positive').required('Interchange rate is required'),
+  transaction_count: yup.number().min(0, 'Transaction count must be positive').nullable(),
+  interchange_rate: yup.number().min(0, 'Interchange rate must be positive').nullable(),
   notes: yup.string().required('Notes are required'),
   posted_date: yup.date().required('Posted date is required'),
   active: yup.boolean().required('Active status is required')
@@ -86,6 +86,20 @@ export const referralPartnerSchema = yup.object({
   contact_email: yup.string().email('Invalid email format').nullable(),
   contact_phone: yup.string().nullable(),
   commission_percentage: yup.number().min(0, 'Commission percentage must be positive').max(100, 'Commission percentage cannot exceed 100%').required('Commission percentage is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
+export const vendorCostsSchema = yup.object({
+  vendor_name: yup.string().required('Vendor name is required'),
+  cost_type: yup.string().required('Cost type is required'),
+  amount: yup.number().min(0, 'Amount must be positive').required('Amount is required'),
+  date: yup.date().required('Date is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
+export const paymentModalitiesSchema = yup.object({
+  payment_method: yup.string().required('Payment method is required'),
+  description: yup.string().nullable(),
   active: yup.boolean().required('Active status is required')
 });
 
@@ -311,7 +325,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         key: 'transaction_count',
         label: 'Transaction Count',
         type: 'number',
-        required: true,
+        required: false,
         min: 0,
         placeholder: 'Enter transaction count'
       },
@@ -319,7 +333,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         key: 'interchange_rate',
         label: 'Interchange Rate',
         type: 'percentage',
-        required: true,
+        required: false,
         min: 0,
         step: 0.0001,
         placeholder: '0.0000'
@@ -558,11 +572,11 @@ export const tableConfigs: Record<string, TableConfig> = {
     tableId: '2103833000011978002',
     fields: [
       {
-        key: 'modality_name',
-        label: 'Modality Name',
+        key: 'payment_method',
+        label: 'Payment Method',
         type: 'text',
         required: true,
-        placeholder: 'Enter modality name'
+        placeholder: 'Enter payment method name'
       },
       {
         key: 'description',
@@ -578,7 +592,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         required: true
       }
     ],
-    displayColumns: ['modality_name', 'description', 'active']
+    displayColumns: ['payment_method', 'description', 'active']
   }
 };
 
@@ -645,7 +659,9 @@ export const validationSchemas: Record<string, any> = {
   employee_commissions_DC: employeeCommissionSchema,
   monthly_interchange_income_DC: monthlyInterchangeIncomeSchema,
   monthly_interest_revenue_DC: monthlyInterestRevenueSchema,
-  referral_partners_DC: referralPartnerSchema
+  referral_partners_DC: referralPartnerSchema,
+  vendor_costs_DC: vendorCostsSchema,
+  payment_modalities: paymentModalitiesSchema
 };
 
 // Default sort configurations
