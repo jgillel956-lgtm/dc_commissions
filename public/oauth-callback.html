@@ -78,8 +78,22 @@
         const code = urlParams.get('code');
         const error = urlParams.get('error');
         const errorDescription = urlParams.get('error_description');
+        const userLocation = urlParams.get('location');
+        const accountsServer = urlParams.get('accounts-server');
+        const state = urlParams.get('state');
 
         const contentDiv = document.getElementById('content');
+
+        // Debug: Log all parameters
+        console.log('OAuth Callback Parameters:', {
+            code: code ? 'Present' : 'Missing',
+            error: error,
+            errorDescription: errorDescription,
+            userLocation: userLocation,
+            accountsServer: accountsServer,
+            state: state,
+            fullUrl: window.location.href
+        });
 
         if (error) {
             contentDiv.innerHTML = `
@@ -102,35 +116,55 @@
                     ${code}
                 </div>
 
+                ${userLocation ? `
+                <div class="code-box">
+                    <strong>User Location:</strong><br>
+                    ${userLocation}
+                </div>
+                ` : ''}
+
+                ${accountsServer ? `
+                <div class="code-box">
+                    <strong>Accounts Server:</strong><br>
+                    ${accountsServer}
+                </div>
+                ` : ''}
+
                 <div class="instructions">
                     <h4>Next Steps:</h4>
                     <ol>
                         <li><strong>Copy the authorization code above</strong></li>
-                        <li>Use this curl command to exchange it for a refresh token:</li>
+                        <li>Go to the OAuth Generator to exchange it for a refresh token</li>
                     </ol>
                     
                     <div class="code-box">
-curl -X POST https://accounts.zoho.com/oauth/v2/token \<br>
-  -d "code=${code}" \<br>
-  -d "client_id=YOUR_CLIENT_ID" \<br>
-  -d "client_secret=YOUR_CLIENT_SECRET" \<br>
-  -d "redirect_uri=https://dc-commissions.vercel.app/oauth-callback.html" \<br>
-  -d "grant_type=authorization_code"
+                        <strong>Quick Exchange:</strong><br>
+                        <a href="/oauth-generator.html" target="_blank">Open OAuth Generator</a>
                     </div>
                     
-                    <p><strong>Note:</strong> Replace <code>YOUR_CLIENT_SECRET</code> with your actual client secret from the Zoho API Console.</p>
+                    <p><strong>Note:</strong> The authorization code expires in 60 seconds!</p>
+                    ${userLocation ? `<p><strong>User Location:</strong> ${userLocation} - Use this to determine the correct data center for API calls.</p>` : ''}
                 </div>
 
                 <button onclick="navigator.clipboard.writeText('${code}')">Copy Authorization Code</button>
                 <button onclick="exchangeToken('${code}')">Exchange for Refresh Token</button>
+                <button onclick="window.open('/oauth-generator.html', '_blank')">Open OAuth Generator</button>
                 <button onclick="window.close()">Close</button>
             `;
         } else {
             contentDiv.innerHTML = `
                 <div class="error">
                     <h3>No Authorization Code Found</h3>
-                    <p>No authorization code was found in the URL. Please make sure you're coming from the Zoho OAuth authorization page.</p>
+                    <p>No authorization code was found in the URL. This could mean:</p>
+                    <ul>
+                        <li>You haven't completed the OAuth authorization yet</li>
+                        <li>The authorization was cancelled or failed</li>
+                        <li>You're accessing this page directly without going through the OAuth flow</li>
+                    </ul>
+                    <p><strong>Current URL:</strong> ${window.location.href}</p>
+                    <p><strong>URL Parameters:</strong> ${window.location.search || 'None'}</p>
                 </div>
+                <button onclick="window.open('/oauth-generator.html', '_blank')">Go to OAuth Generator</button>
                 <button onclick="window.close()">Close</button>
             `;
         }

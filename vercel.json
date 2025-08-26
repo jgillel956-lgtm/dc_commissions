@@ -66,6 +66,14 @@
       "dest": "/oauth-callback.html"
     },
     {
+      "src": "/oauth-generator.html",
+      "dest": "/oauth-generator.html"
+    },
+    {
+      "src": "/add-user.html",
+      "dest": "/add-user.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

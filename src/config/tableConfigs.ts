@@ -606,14 +606,26 @@ export const columnFormatters: Record<string, (value: any) => string> = {
   amount: (value: number) => `$${value.toLocaleString()}`,
   base_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
   max_fee_upcharge: (value: number) => `$${value.toLocaleString()}`,
-  multiplier_upcharge: (value: number) => `${(value * 100).toFixed(3)}%`,
+  multiplier_upcharge: (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.000%' : `${(numValue * 100).toFixed(3)}%`;
+  },
   commission_amount: (value: number) => `$${value.toLocaleString()}`,
-  commission_percentage: (value: number) => `${value.toFixed(1)}%`,
+  commission_percentage: (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.0%' : `${numValue.toFixed(1)}%`;
+  },
   interchange_amount: (value: number) => `$${value.toLocaleString()}`,
-  interchange_rate: (value: number) => `${(value * 100).toFixed(4)}%`,
+  interchange_rate: (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.0000%' : `${(numValue * 100).toFixed(4)}%`;
+  },
   interest_amount: (value: number) => `$${value.toLocaleString()}`,
   account_balance: (value: number) => `$${value.toLocaleString()}`,
-  interest_rate: (value: number) => `${(value * 100).toFixed(4)}%`,
+  interest_rate: (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.0000%' : `${(numValue * 100).toFixed(4)}%`;
+  },
   due_date: (value: string) => new Date(value).toLocaleDateString(),
   created_at: (value: string) => new Date(value).toLocaleDateString(),
   updated_at: (value: string) => new Date(value).toLocaleDateString(),

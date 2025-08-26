@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add User to Zoho Analytics Workspace</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            color: #0c5460;
+            margin-bottom: 20px;
+        }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Add User to Zoho Analytics Workspace</h1>
+        
+        <div class="info">
+            <h3>ℹ️ Current Workspace Configuration</h3>
+            <p><strong>Workspace ID:</strong> <span id="workspaceId">Loading...</span></p>
+            <p><strong>Organization ID:</strong> <span id="orgId">Loading...</span></p>
+        </div>
+
+        <form id="addUserForm">
+            <div class="form-group">
+                <label for="emailInput">Email Address:</label>
+                <input type="email" id="emailInput" placeholder="Enter email address (e.g., skip@example.com)" required>
+            </div>
+
+            <div class="form-group">
+                <label for="roleSelect">Role:</label>
+                <select id="roleSelect">
+                    <option value="USER">USER (Default)</option>
+                    <option value="WORKSPACEADMIN">WORKSPACE ADMIN</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn">Add User to Workspace</button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // Load current configuration
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/zoho-analytics.mjs?debug=1');
+                const data = await response.json();
+                
+                document.getElementById('workspaceId').textContent = data.workspaceId || 'Not configured';
+                document.getElementById('orgId').textContent = data.orgId || 'Not configured';
+            } catch (error) {
+                console.error('Error loading config:', error);
+                document.getElementById('workspaceId').textContent = 'Error loading';
+                document.getElementById('orgId').textContent = 'Error loading';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('addUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('emailInput').value.trim();
+            const role = document.getElementById('roleSelect').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            
+            if (!email) {
+                alert('Please enter an email address');
+                return;
+            }
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding User...';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/zoho-analytics.mjs?action=addUser', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        emailIds: [email],
+                        role: role
+                    })
+                });
+
+                const result = await response.json();
+                
+                resultDiv.style.display = 'block';
+                
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ User Added Successfully!</h3>
+                        <p><strong>Email:</strong> ${email}</p>
+                        <p><strong>Role:</strong> ${role}</p>
+                        <p><strong>Message:</strong> ${result.message}</p>
+                        <div class="code">
+                            <strong>API Response:</strong><br>
+                            ${JSON.stringify(result, null, 2)}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Failed to Add User</h3>
+                        <p><strong>Error:</strong> ${result.error || 'Unknown error'}</p>
+                        <p><strong>Details:</strong> ${result.details || 'No details provided'}</p>
+                        <p><strong>Message:</strong> ${result.message || 'No message provided'}</p>
+                        <div class="code">
+                            <strong>Full Response:</strong><br>
+                            ${JSON.stringify(result, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Please check your internet connection and try again.</p>
+                `;
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add User to Workspace';
+            }
+        });
+
+        // Load configuration on page load
+        loadConfig();
+    </script>
+</body>
+</html>
