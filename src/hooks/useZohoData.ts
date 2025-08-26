@@ -1,6 +1,7 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { zohoApi } from '../services/zohoApi';
 import { SearchParams, Customer, Product, Order, Invoice } from '../services/apiTypes';
+import { useMemo } from 'react';
 
 // Generic hook for fetching records with search and pagination
 export const useRecords = <T>(
@@ -173,4 +174,37 @@ export const useInvoicesWithCustomers = (params?: SearchParams) => {
 // Generic hook for any table
 export const useZohoData = (tableName: string, params?: SearchParams) => {
   return useRecords<any>(tableName, params);
+};
+
+// Hook for fetching lookup data for forms
+export const useLookupData = (tableName: string) => {
+  const { data: companies } = useZohoData('insurance_companies_DC');
+  const { data: paymentMethods } = useZohoData('payment_modalities');
+  
+  const lookupData = useMemo(() => {
+    switch (tableName) {
+      case 'company_upcharge_fees_DC':
+        return {
+          companies: companies?.data || [],
+          paymentMethods: paymentMethods?.data || []
+        };
+      case 'employee_commissions_DC':
+        return {
+          companies: companies?.data || [],
+          paymentMethods: paymentMethods?.data || []
+        };
+      case 'monthly_interchange_income_DC':
+        return {
+          companies: companies?.data || []
+        };
+      case 'monthly_interest_revenue_DC':
+        return {
+          companies: companies?.data || []
+        };
+      default:
+        return {};
+    }
+  }, [tableName, companies, paymentMethods]);
+  
+  return lookupData;
 };

@@ -7,6 +7,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { TableConfig, FieldConfig } from '../../config/tableConfigs';
 import { validationSchemas } from '../../config/tableConfigs';
+import { useLookupData } from '../../hooks/useZohoData';
 
 interface AddRecordFormProps {
   tableConfig: TableConfig;
@@ -22,6 +23,7 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
   loading = false,
 }) => {
   const validationSchema = validationSchemas[tableConfig.name.toLowerCase() as keyof typeof validationSchemas];
+  const lookupData = useLookupData(tableConfig.tableName);
   
   const formik = useFormik({
     initialValues: tableConfig.fields.reduce((acc: Record<string, any>, field: FieldConfig) => {
@@ -38,6 +40,26 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
       }
     },
   });
+
+  const getFieldOptions = (field: FieldConfig) => {
+    if (field.lookupTable) {
+      switch (field.lookupTable) {
+        case 'insurance_companies_DC':
+          return lookupData.companies?.map((company: any) => ({
+            value: company[field.lookupValueField || 'id'],
+            label: company[field.lookupDisplayField || 'company']
+          })) || [];
+        case 'payment_modalities':
+          return lookupData.paymentMethods?.map((method: any) => ({
+            value: method[field.lookupValueField || 'id'],
+            label: method[field.lookupDisplayField || 'payment_method']
+          })) || [];
+        default:
+          return [];
+      }
+    }
+    return field.options?.map(opt => ({ value: String(opt.value), label: opt.label })) || [];
+  };
 
   const renderField = (field: FieldConfig) => {
     const { key, label, type, required, options } = field;
@@ -105,7 +127,7 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
             {...commonProps}
             label={label}
             error={error as string}
-            options={options?.map(opt => ({ value: String(opt.value), label: opt.label })) || []}
+            options={getFieldOptions(field)}
             placeholder={`Select ${label.toLowerCase()}`}
           />
         );
