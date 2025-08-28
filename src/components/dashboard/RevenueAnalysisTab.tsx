@@ -1709,9 +1709,9 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* KPI Widgets Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className={`space-y-4 sm:space-y-6 ${className}`}>
+      {/* KPI Widgets Section - Enhanced Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
         <KPIWidget
           title="Total Revenue"
           value={kpis.totalRevenue}
@@ -1726,6 +1726,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
             isPositive: kpis.revenueGrowthRate >= 0,
           }}
           showTrend={true}
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1734,6 +1735,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="transaction"
           format="number"
           subtitle="Number of processed transactions"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1742,6 +1744,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="currency"
           format="currency"
           subtitle="Mean transaction amount"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1750,6 +1753,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="revenue"
           format="currency"
           subtitle="Average revenue per transaction"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1758,6 +1762,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="revenue"
           format="currency"
           subtitle="Revenue from payee fees"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1766,6 +1771,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="revenue"
           format="currency"
           subtitle="Revenue from payor fees"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1774,6 +1780,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           type="revenue"
           format="currency"
           subtitle="Total revenue after all calculations"
+          className="min-h-[120px] sm:min-h-[140px]"
         />
 
         <KPIWidget
@@ -1790,11 +1797,12 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
             isPositive: kpis.revenueGrowthRate >= 0,
           }}
           showTrend={true}
+          className="min-h-[120px] sm:min-h-[140px]"
         />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Section - Enhanced Responsive Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue Breakdown Pie Chart */}
         <ChartContainer
           title="Revenue Breakdown"
@@ -1803,7 +1811,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           size="lg"
           showExport={true}
           onExport={handleExport}
-          className="bg-white rounded-lg shadow"
+          className="bg-white rounded-lg shadow min-h-[400px] sm:min-h-[450px] lg:min-h-[500px]"
         >
           <PieChart
             data={pieChartData}
@@ -1836,7 +1844,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
           size="lg"
           showExport={true}
           onExport={handleExport}
-          className="bg-white rounded-lg shadow"
+          className="bg-white rounded-lg shadow min-h-[400px] sm:min-h-[450px] lg:min-h-[500px]"
         >
           <BarChart
             data={companyBarData}
@@ -1853,195 +1861,198 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
         </ChartContainer>
       </div>
 
-      {/* Additional Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Payment Method Analysis */}
-        <ChartContainer
-          title="Payment Method Analysis"
-          subtitle="Revenue by payment method"
-          type="bar"
-          size="lg"
-          showExport={true}
-          onExport={handleExport}
-          className="bg-white rounded-lg shadow"
-        >
-          <BarChart
-            data={paymentMethodBarData}
+      {/* Additional Charts Section - Enhanced Responsive Layout */}
+      <div className="space-y-4 sm:space-y-6">
+        {/* Payment Method Analysis - Full Width on Mobile, Side by Side on Larger Screens */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+          <ChartContainer
             title="Payment Method Analysis"
             subtitle="Revenue by payment method"
-            xAxisDataKey="name"
-            yAxisDataKey="revenue"
-            showLegend={true}
-            onDataPointClick={handleBarChartClick}
-            enableDrillDown={true}
-            ariaLabel="Bar chart showing revenue by payment method"
-            ariaDescription="Interactive bar chart displaying revenue breakdown by payment method"
-          />
-        </ChartContainer>
+            type="bar"
+            size="lg"
+            showExport={true}
+            onExport={handleExport}
+            className="bg-white rounded-lg shadow min-h-[400px] sm:min-h-[450px]"
+          >
+            <BarChart
+              data={paymentMethodBarData}
+              title="Payment Method Analysis"
+              subtitle="Revenue by payment method"
+              xAxisDataKey="name"
+              yAxisDataKey="revenue"
+              showLegend={true}
+              onDataPointClick={handleBarChartClick}
+              enableDrillDown={true}
+              ariaLabel="Bar chart showing revenue by payment method"
+              ariaDescription="Interactive bar chart displaying revenue breakdown by payment method"
+            />
+          </ChartContainer>
 
-        {/* Revenue Trends Section */}
-        <div className="space-y-6">
-          {/* Revenue Trends Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(revenueTrends.summary.totalRevenue)}</p>
-                  <p className={`text-sm ${revenueTrends.summary.revenueGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {revenueTrends.summary.revenueGrowthRate >= 0 ? '+' : ''}{formatPercentage(revenueTrends.summary.revenueGrowthRate)} vs last month
-                  </p>
-                </div>
-                <div className="p-2 bg-green-100 rounded-full">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
+          {/* Revenue Trends Summary Cards - Responsive Grid */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-h-[120px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Revenue</p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{formatCurrency(revenueTrends.summary.totalRevenue)}</p>
+                    <p className={`text-xs sm:text-sm ${revenueTrends.summary.revenueGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'} truncate`}>
+                      {revenueTrends.summary.revenueGrowthRate >= 0 ? '+' : ''}{formatPercentage(revenueTrends.summary.revenueGrowthRate)} vs last month
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0 p-2 bg-green-100 rounded-full ml-2">
+                    <svg className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Avg. Daily Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(revenueTrends.summary.averageDailyRevenue)}</p>
-                  <p className="text-sm text-gray-500">Last 90 days</p>
-                </div>
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+              <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-h-[120px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Avg. Daily Revenue</p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{formatCurrency(revenueTrends.summary.averageDailyRevenue)}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">Last 90 days</p>
+                  </div>
+                  <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full ml-2">
+                    <svg className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Trend Direction</p>
-                  <p className={`text-2xl font-bold ${
-                    revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
-                    revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+              <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-h-[120px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Trend Direction</p>
+                    <p className={`text-lg sm:text-2xl font-bold ${
+                      revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
+                      revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                    } truncate`}>
+                      {revenueTrends.summary.trendDirection.charAt(0).toUpperCase() + revenueTrends.summary.trendDirection.slice(1)}
+                    </p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{revenueTrends.summary.seasonalPattern}</p>
+                  </div>
+                  <div className={`flex-shrink-0 p-2 rounded-full ml-2 ${
+                    revenueTrends.summary.trendDirection === 'increasing' ? 'bg-green-100' : 
+                    revenueTrends.summary.trendDirection === 'decreasing' ? 'bg-red-100' : 'bg-gray-100'
                   }`}>
-                    {revenueTrends.summary.trendDirection.charAt(0).toUpperCase() + revenueTrends.summary.trendDirection.slice(1)}
-                  </p>
-                  <p className="text-sm text-gray-500">{revenueTrends.summary.seasonalPattern}</p>
-                </div>
-                <div className={`p-2 rounded-full ${
-                  revenueTrends.summary.trendDirection === 'increasing' ? 'bg-green-100' : 
-                  revenueTrends.summary.trendDirection === 'decreasing' ? 'bg-red-100' : 'bg-gray-100'
-                }`}>
-                  <svg className={`w-6 h-6 ${
-                    revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
-                    revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
-                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
+                    <svg className={`w-4 h-4 sm:w-6 sm:h-6 ${
+                      revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
+                      revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Best Performing Day</p>
-                  <p className="text-2xl font-bold text-gray-900">{revenueTrends.summary.bestDay || 'N/A'}</p>
-                  <p className="text-sm text-gray-500">Highest revenue day</p>
-                </div>
-                <div className="p-2 bg-purple-100 rounded-full">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
+              <div className="bg-white rounded-lg shadow p-3 sm:p-4 min-h-[120px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Best Performing Day</p>
+                    <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{revenueTrends.summary.bestDay || 'N/A'}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">Highest revenue day</p>
+                  </div>
+                  <div className="flex-shrink-0 p-2 bg-purple-100 rounded-full ml-2">
+                    <svg className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Daily Revenue Trends */}
-          <ChartContainer
+        {/* Daily Revenue Trends - Full Width */}
+        <ChartContainer
+          title="Daily Revenue Trends"
+          subtitle="Revenue performance over the last 90 days with growth indicators"
+          type="line"
+          size="lg"
+          showExport={true}
+          onExport={handleExport}
+          className="bg-white rounded-lg shadow min-h-[400px] sm:min-h-[450px] lg:min-h-[500px]"
+        >
+          <LineChart
+            data={trendLineData}
             title="Daily Revenue Trends"
             subtitle="Revenue performance over the last 90 days with growth indicators"
+            xAxisDataKey="date"
+            yAxisDataKey="revenue"
+            showLegend={true}
+            onDataPointClick={handleLineChartClick}
+            enableDrillDown={true}
+            ariaLabel="Line chart showing daily revenue trends over time"
+            ariaDescription="Interactive line chart displaying daily revenue trends with growth indicators and moving averages"
+          />
+        </ChartContainer>
+
+        {/* Weekly and Monthly Trends Grid - Enhanced Responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Weekly Revenue Trends */}
+          <ChartContainer
+            title="Weekly Revenue Trends"
+            subtitle="Revenue performance by week with cumulative analysis"
             type="line"
-            size="lg"
+            size="md"
             showExport={true}
             onExport={handleExport}
-            className="bg-white rounded-lg shadow"
+            className="bg-white rounded-lg shadow min-h-[350px] sm:min-h-[400px]"
           >
             <LineChart
-              data={trendLineData}
-              title="Daily Revenue Trends"
-              subtitle="Revenue performance over the last 90 days with growth indicators"
+              data={weeklyTrendData}
+              title="Weekly Revenue Trends"
+              subtitle="Revenue performance by week with cumulative analysis"
               xAxisDataKey="date"
               yAxisDataKey="revenue"
               showLegend={true}
               onDataPointClick={handleLineChartClick}
               enableDrillDown={true}
-              ariaLabel="Line chart showing daily revenue trends over time"
-              ariaDescription="Interactive line chart displaying daily revenue trends with growth indicators and moving averages"
+              ariaLabel="Line chart showing weekly revenue trends"
+              ariaDescription="Interactive line chart displaying weekly revenue trends with cumulative analysis"
             />
           </ChartContainer>
 
-          {/* Weekly and Monthly Trends Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Weekly Revenue Trends */}
-            <ChartContainer
-              title="Weekly Revenue Trends"
-              subtitle="Revenue performance by week with cumulative analysis"
-              type="line"
-              size="md"
-              showExport={true}
-              onExport={handleExport}
-              className="bg-white rounded-lg shadow"
-            >
-              <LineChart
-                data={weeklyTrendData}
-                title="Weekly Revenue Trends"
-                subtitle="Revenue performance by week with cumulative analysis"
-                xAxisDataKey="date"
-                yAxisDataKey="revenue"
-                showLegend={true}
-                onDataPointClick={handleLineChartClick}
-                enableDrillDown={true}
-                ariaLabel="Line chart showing weekly revenue trends"
-                ariaDescription="Interactive line chart displaying weekly revenue trends with cumulative analysis"
-              />
-            </ChartContainer>
-
-            {/* Monthly Revenue Trends */}
-            <ChartContainer
-              title="Monthly Revenue Trends"
-              subtitle="Revenue performance by month with seasonal patterns"
-              type="line"
-              size="md"
-              showExport={true}
-              onExport={handleExport}
-              className="bg-white rounded-lg shadow"
-            >
-              <LineChart
-                data={monthlyTrendData}
-                title="Monthly Revenue Trends"
-                subtitle="Revenue performance by month with seasonal patterns"
-                xAxisDataKey="date"
-                yAxisDataKey="revenue"
-                showLegend={true}
-                onDataPointClick={handleLineChartClick}
-                enableDrillDown={true}
-                ariaLabel="Line chart showing monthly revenue trends"
-                ariaDescription="Interactive line chart displaying monthly revenue trends with seasonal pattern analysis"
-              />
-            </ChartContainer>
-          </div>
-
-          {/* Revenue Trends Analysis Table */}
+          {/* Monthly Revenue Trends */}
           <ChartContainer
-            title="Revenue Trends Analysis"
-            subtitle="Detailed breakdown of revenue trends with growth metrics and performance indicators"
-            type="table"
-            size="xl"
+            title="Monthly Revenue Trends"
+            subtitle="Revenue performance by month with seasonal patterns"
+            type="line"
+            size="md"
             showExport={true}
             onExport={handleExport}
-            className="bg-white rounded-lg shadow"
+            className="bg-white rounded-lg shadow min-h-[350px] sm:min-h-[400px]"
           >
+            <LineChart
+              data={monthlyTrendData}
+              title="Monthly Revenue Trends"
+              subtitle="Revenue performance by month with seasonal patterns"
+              xAxisDataKey="date"
+              yAxisDataKey="revenue"
+              showLegend={true}
+              onDataPointClick={handleLineChartClick}
+              enableDrillDown={true}
+              ariaLabel="Line chart showing monthly revenue trends"
+              ariaDescription="Interactive line chart displaying monthly revenue trends with seasonal pattern analysis"
+            />
+          </ChartContainer>
+        </div>
+
+        {/* Revenue Trends Analysis Table - Enhanced Responsive */}
+        <ChartContainer
+          title="Revenue Trends Analysis"
+          subtitle="Detailed breakdown of revenue trends with growth metrics and performance indicators"
+          type="table"
+          size="xl"
+          showExport={true}
+          onExport={handleExport}
+          className="bg-white rounded-lg shadow overflow-hidden"
+        >
+          <div className="overflow-x-auto">
             <DataTable
               data={revenueTrends.daily.slice(-30)} // Last 30 days
               columns={[
@@ -2049,32 +2060,32 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                   key: 'date',
                   title: 'Date',
                   sortable: true,
-                  render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
+                  render: (value: string) => <span className="font-medium text-gray-900 text-xs sm:text-sm">{value}</span>,
                 },
                 {
                   key: 'revenue',
                   title: 'Revenue',
                   sortable: true,
-                  render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
+                  render: (value: number) => <span className="text-green-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'transactions',
                   title: 'Transactions',
                   sortable: true,
-                  render: (value: number) => <span className="text-gray-600">{formatNumber(value)}</span>,
+                  render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatNumber(value)}</span>,
                 },
                 {
                   key: 'revenuePerTransaction',
                   title: 'Revenue/Transaction',
                   sortable: true,
-                  render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
+                  render: (value: number) => <span className="text-blue-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'revenueGrowth',
                   title: 'Revenue Growth',
                   sortable: true,
                   render: (value: number) => (
-                    <span className={`font-medium ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-medium text-xs sm:text-sm ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {value >= 0 ? '+' : ''}{formatPercentage(value)}
                     </span>
                   ),
@@ -2084,7 +2095,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                   title: 'Transaction Growth',
                   sortable: true,
                   render: (value: number) => (
-                    <span className={`font-medium ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-medium text-xs sm:text-sm ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {value >= 0 ? '+' : ''}{formatPercentage(value)}
                     </span>
                   ),
@@ -2093,20 +2104,20 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                   key: 'movingAverage',
                   title: '7-Day Moving Avg',
                   sortable: true,
-                  render: (value: number) => <span className="text-purple-600 font-medium">{formatCurrency(value)}</span>,
+                  render: (value: number) => <span className="text-purple-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'cumulativeRevenue',
                   title: 'Cumulative Revenue',
                   sortable: true,
-                  render: (value: number) => <span className="text-indigo-600 font-medium">{formatCurrency(value)}</span>,
+                  render: (value: number) => <span className="text-indigo-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'successRate',
                   title: 'Success Rate',
                   sortable: true,
                   render: (value: number) => (
-                    <span className={`font-medium ${value >= 95 ? 'text-green-600' : value >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <span className={`font-medium text-xs sm:text-sm ${value >= 95 ? 'text-green-600' : value >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
                       {formatPercentage(value)}
                     </span>
                   ),
@@ -2119,11 +2130,11 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
               ariaLabel="Revenue trends analysis data table"
               ariaDescription="Comprehensive sortable and searchable table showing detailed revenue trends with growth metrics, moving averages, and performance indicators"
             />
-          </ChartContainer>
-        </div>
+          </div>
+        </ChartContainer>
       </div>
 
-      {/* Company Performance Table */}
+      {/* Company Performance Table - Enhanced Responsive */}
       <ChartContainer
         title="Company Performance Details"
         subtitle="Detailed breakdown of company performance metrics"
@@ -2131,101 +2142,103 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
         size="xl"
         showExport={true}
         onExport={handleExport}
-        className="bg-white rounded-lg shadow"
+        className="bg-white rounded-lg shadow overflow-hidden"
       >
-        <DataTable
-          data={companyPerformance}
-          columns={[
-            {
-              key: 'company',
-              title: 'Company',
-              sortable: true,
-              render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
-            },
-            {
-              key: 'totalRevenue',
-              title: 'Total Revenue',
-              sortable: true,
-              render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'transactionCount',
-              title: 'Transactions',
-              sortable: true,
-              render: (value: number) => <span className="text-gray-600">{formatNumber(value)}</span>,
-            },
-            {
-              key: 'transactionVolume',
-              title: 'Transaction Volume',
-              sortable: true,
-              render: (value: number) => <span className="text-purple-600 font-medium">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'averageValue',
-              title: 'Avg. Transaction',
-              sortable: true,
-              render: (value: number) => <span className="text-gray-600">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'averageRevenuePerTransaction',
-              title: 'Avg. Revenue/Transaction',
-              sortable: true,
-              render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'revenueShare',
-              title: 'Revenue Share',
-              sortable: true,
-              render: (value: number) => <span className="text-indigo-600 font-medium">{formatPercentage(value)}</span>,
-            },
-            {
-              key: 'revenueEfficiency',
-              title: 'Revenue Efficiency',
-              sortable: true,
-              render: (value: number) => (
-                <span className={`font-medium ${value >= 5 ? 'text-green-600' : value >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {formatPercentage(value)}
-                </span>
-              ),
-            },
-            {
-              key: 'payeeFeeRevenue',
-              title: 'Payee Fees',
-              sortable: true,
-              render: (value: number) => <span className="text-blue-500">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'payorFeeRevenue',
-              title: 'Payor Fees',
-              sortable: true,
-              render: (value: number) => <span className="text-green-500">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'additionalCharges',
-              title: 'Additional Charges',
-              sortable: true,
-              render: (value: number) => <span className="text-orange-500">{formatCurrency(value)}</span>,
-            },
-            {
-              key: 'firstTransactionDate',
-              title: 'First Transaction',
-              sortable: true,
-              render: (value: string) => <span className="text-gray-600 text-sm">{value}</span>,
-            },
-            {
-              key: 'lastTransactionDate',
-              title: 'Last Transaction',
-              sortable: true,
-              render: (value: string) => <span className="text-gray-600 text-sm">{value}</span>,
-            },
-          ]}
-          sortable={true}
-          searchable={true}
-          pagination={true}
-          pageSize={15}
-          ariaLabel="Company performance analysis data table"
-          ariaDescription="Comprehensive sortable and searchable table showing detailed company performance metrics including revenue breakdown, transaction analysis, and efficiency indicators"
-        />
+        <div className="overflow-x-auto">
+          <DataTable
+            data={companyPerformance}
+            columns={[
+              {
+                key: 'company',
+                title: 'Company',
+                sortable: true,
+                render: (value: string) => <span className="font-medium text-gray-900 text-xs sm:text-sm">{value}</span>,
+              },
+              {
+                key: 'totalRevenue',
+                title: 'Total Revenue',
+                sortable: true,
+                render: (value: number) => <span className="text-green-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'transactionCount',
+                title: 'Transactions',
+                sortable: true,
+                render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatNumber(value)}</span>,
+              },
+              {
+                key: 'transactionVolume',
+                title: 'Transaction Volume',
+                sortable: true,
+                render: (value: number) => <span className="text-purple-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'averageValue',
+                title: 'Avg. Transaction',
+                sortable: true,
+                render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'averageRevenuePerTransaction',
+                title: 'Avg. Revenue/Transaction',
+                sortable: true,
+                render: (value: number) => <span className="text-blue-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'revenueShare',
+                title: 'Revenue Share',
+                sortable: true,
+                render: (value: number) => <span className="text-indigo-600 font-medium text-xs sm:text-sm">{formatPercentage(value)}</span>,
+              },
+              {
+                key: 'revenueEfficiency',
+                title: 'Revenue Efficiency',
+                sortable: true,
+                render: (value: number) => (
+                  <span className={`font-medium text-xs sm:text-sm ${value >= 5 ? 'text-green-600' : value >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {formatPercentage(value)}
+                  </span>
+                ),
+              },
+              {
+                key: 'payeeFeeRevenue',
+                title: 'Payee Fees',
+                sortable: true,
+                render: (value: number) => <span className="text-blue-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'payorFeeRevenue',
+                title: 'Payor Fees',
+                sortable: true,
+                render: (value: number) => <span className="text-green-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'additionalCharges',
+                title: 'Additional Charges',
+                sortable: true,
+                render: (value: number) => <span className="text-orange-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
+              },
+              {
+                key: 'firstTransactionDate',
+                title: 'First Transaction',
+                sortable: true,
+                render: (value: string) => <span className="text-gray-600 text-xs sm:text-sm">{value}</span>,
+              },
+              {
+                key: 'lastTransactionDate',
+                title: 'Last Transaction',
+                sortable: true,
+                render: (value: string) => <span className="text-gray-600 text-xs sm:text-sm">{value}</span>,
+              },
+            ]}
+            sortable={true}
+            searchable={true}
+            pagination={true}
+            pageSize={15}
+            ariaLabel="Company performance analysis data table"
+            ariaDescription="Comprehensive sortable and searchable table showing detailed company performance metrics including revenue breakdown, transaction analysis, and efficiency indicators"
+          />
+        </div>
       </ChartContainer>
     </div>
   );

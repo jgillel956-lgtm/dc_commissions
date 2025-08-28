@@ -146,7 +146,7 @@
   - [x] 5.5 Add payment method analysis with transaction volumes
   - [x] 5.6 Create daily/monthly revenue trend visualizations
   - [x] 5.7 Implement drill-down functionality for company and payment method analysis
-  - [ ] 5.8 Add export functionality for revenue analysis data
+  - [x] 5.8 Add export functionality for revenue analysis data
   - [ ] 5.9 Create responsive layout for KPI widgets and charts
 
 - [ ] 6.0 Commission Analysis Tab Implementation
