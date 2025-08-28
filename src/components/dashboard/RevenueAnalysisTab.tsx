@@ -53,6 +53,37 @@ interface RevenueTrend {
   revenue: number;
   transactions: number;
   averageValue: number;
+  payeeFees: number;
+  payorFees: number;
+  additionalCharges: number;
+  revenueGrowth: number;
+  transactionGrowth: number;
+  movingAverage: number;
+  cumulativeRevenue: number;
+  revenuePerTransaction: number;
+  successRate: number;
+  period: 'daily' | 'weekly' | 'monthly';
+}
+
+// Enhanced revenue trend analysis interface
+interface RevenueTrendAnalysis {
+  daily: RevenueTrend[];
+  weekly: RevenueTrend[];
+  monthly: RevenueTrend[];
+  summary: {
+    totalRevenue: number;
+    totalTransactions: number;
+    averageDailyRevenue: number;
+    averageMonthlyRevenue: number;
+    revenueGrowthRate: number;
+    transactionGrowthRate: number;
+    bestDay: string;
+    worstDay: string;
+    bestMonth: string;
+    worstMonth: string;
+    seasonalPattern: string;
+    trendDirection: 'increasing' | 'decreasing' | 'stable';
+  };
 }
 
 const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' }) => {
@@ -171,32 +202,210 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
       .sort((a, b) => b.totalRevenue - a.totalRevenue);
   }, []);
 
-  // Calculate revenue trends over time
-  const calculateRevenueTrends = useCallback((data: RevenueMasterRecord[]): RevenueTrend[] => {
-    if (!data || data.length === 0) return [];
+  // Calculate comprehensive revenue trends over time
+  const calculateRevenueTrends = useCallback((data: RevenueMasterRecord[]): RevenueTrendAnalysis => {
+    if (!data || data.length === 0) {
+      return {
+        daily: [],
+        weekly: [],
+        monthly: [],
+        summary: {
+          totalRevenue: 0,
+          totalTransactions: 0,
+          averageDailyRevenue: 0,
+          averageMonthlyRevenue: 0,
+          revenueGrowthRate: 0,
+          transactionGrowthRate: 0,
+          bestDay: '',
+          worstDay: '',
+          bestMonth: '',
+          worstMonth: '',
+          seasonalPattern: 'No pattern detected',
+          trendDirection: 'stable',
+        },
+      };
+    }
 
-    const dateMap = new Map<string, { revenue: number; count: number; totalValue: number }>();
+    // Daily trends
+    const dailyMap = new Map<string, { 
+      revenue: number; 
+      count: number; 
+      totalValue: number;
+      payeeFees: number;
+      payorFees: number;
+      additionalCharges: number;
+      successfulTransactions: number;
+    }>();
+
+    // Weekly trends
+    const weeklyMap = new Map<string, { 
+      revenue: number; 
+      count: number; 
+      totalValue: number;
+      payeeFees: number;
+      payorFees: number;
+      additionalCharges: number;
+      successfulTransactions: number;
+    }>();
+
+    // Monthly trends
+    const monthlyMap = new Map<string, { 
+      revenue: number; 
+      count: number; 
+      totalValue: number;
+      payeeFees: number;
+      payorFees: number;
+      additionalCharges: number;
+      successfulTransactions: number;
+    }>();
 
     data.forEach(record => {
-      const date = new Date(record.created_at).toISOString().split('T')[0]; // YYYY-MM-DD
-      const existing = dateMap.get(date) || { revenue: 0, count: 0, totalValue: 0 };
+      const date = new Date(record.created_at);
+      const dailyKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const weeklyKey = `${date.getFullYear()}-W${Math.ceil((date.getDate() + new Date(date.getFullYear(), date.getMonth(), 1).getDay()) / 7)}`;
+      const monthlyKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
       
-      dateMap.set(date, {
-        revenue: existing.revenue + record.Total_Combined_Revenue,
-        count: existing.count + 1,
-        totalValue: existing.totalValue + record.amount,
+      const additionalCharges = (record.bundle_charges || 0) + (record.postage_fee || 0);
+      const isSuccessful = record.api_transaction_status === 'completed';
+
+      // Daily aggregation
+      const dailyExisting = dailyMap.get(dailyKey) || { 
+        revenue: 0, count: 0, totalValue: 0, payeeFees: 0, payorFees: 0, additionalCharges: 0, successfulTransactions: 0 
+      };
+      dailyMap.set(dailyKey, {
+        revenue: dailyExisting.revenue + record.Total_Combined_Revenue,
+        count: dailyExisting.count + 1,
+        totalValue: dailyExisting.totalValue + record.amount,
+        payeeFees: dailyExisting.payeeFees + record.Payee_Fee_Revenue,
+        payorFees: dailyExisting.payorFees + record.Payor_Fee_Revenue,
+        additionalCharges: dailyExisting.additionalCharges + additionalCharges,
+        successfulTransactions: dailyExisting.successfulTransactions + (isSuccessful ? 1 : 0),
+      });
+
+      // Weekly aggregation
+      const weeklyExisting = weeklyMap.get(weeklyKey) || { 
+        revenue: 0, count: 0, totalValue: 0, payeeFees: 0, payorFees: 0, additionalCharges: 0, successfulTransactions: 0 
+      };
+      weeklyMap.set(weeklyKey, {
+        revenue: weeklyExisting.revenue + record.Total_Combined_Revenue,
+        count: weeklyExisting.count + 1,
+        totalValue: weeklyExisting.totalValue + record.amount,
+        payeeFees: weeklyExisting.payeeFees + record.Payee_Fee_Revenue,
+        payorFees: weeklyExisting.payorFees + record.Payor_Fee_Revenue,
+        additionalCharges: weeklyExisting.additionalCharges + additionalCharges,
+        successfulTransactions: weeklyExisting.successfulTransactions + (isSuccessful ? 1 : 0),
+      });
+
+      // Monthly aggregation
+      const monthlyExisting = monthlyMap.get(monthlyKey) || { 
+        revenue: 0, count: 0, totalValue: 0, payeeFees: 0, payorFees: 0, additionalCharges: 0, successfulTransactions: 0 
+      };
+      monthlyMap.set(monthlyKey, {
+        revenue: monthlyExisting.revenue + record.Total_Combined_Revenue,
+        count: monthlyExisting.count + 1,
+        totalValue: monthlyExisting.totalValue + record.amount,
+        payeeFees: monthlyExisting.payeeFees + record.Payee_Fee_Revenue,
+        payorFees: monthlyExisting.payorFees + record.Payor_Fee_Revenue,
+        additionalCharges: monthlyExisting.additionalCharges + additionalCharges,
+        successfulTransactions: monthlyExisting.successfulTransactions + (isSuccessful ? 1 : 0),
       });
     });
 
-    return Array.from(dateMap.entries())
-      .map(([date, stats]) => ({
-        date,
-        revenue: stats.revenue,
-        transactions: stats.count,
-        averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-30); // Last 30 days
+    // Convert to arrays and calculate additional metrics
+    const processTrendData = (map: Map<string, any>, period: 'daily' | 'weekly' | 'monthly'): RevenueTrend[] => {
+      const entries = Array.from(map.entries())
+        .map(([key, stats]) => ({
+          date: key,
+          revenue: stats.revenue,
+          transactions: stats.count,
+          averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
+          payeeFees: stats.payeeFees,
+          payorFees: stats.payorFees,
+          additionalCharges: stats.additionalCharges,
+          revenueGrowth: 0, // Will be calculated below
+          transactionGrowth: 0, // Will be calculated below
+          movingAverage: 0, // Will be calculated below
+          cumulativeRevenue: 0, // Will be calculated below
+          revenuePerTransaction: stats.count > 0 ? stats.revenue / stats.count : 0,
+          successRate: stats.count > 0 ? (stats.successfulTransactions / stats.count) * 100 : 0,
+          period,
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Calculate growth rates, moving averages, and cumulative revenue
+      let cumulativeRevenue = 0;
+      for (let i = 0; i < entries.length; i++) {
+        cumulativeRevenue += entries[i].revenue;
+        entries[i].cumulativeRevenue = cumulativeRevenue;
+
+        if (i > 0) {
+          const prevRevenue = entries[i - 1].revenue;
+          const prevTransactions = entries[i - 1].transactions;
+          
+          entries[i].revenueGrowth = prevRevenue > 0 ? ((entries[i].revenue - prevRevenue) / prevRevenue) * 100 : 0;
+          entries[i].transactionGrowth = prevTransactions > 0 ? ((entries[i].transactions - prevTransactions) / prevTransactions) * 100 : 0;
+        }
+
+        // Calculate 7-day moving average for daily data
+        if (period === 'daily' && i >= 6) {
+          const movingSum = entries.slice(i - 6, i + 1).reduce((sum, entry) => sum + entry.revenue, 0);
+          entries[i].movingAverage = movingSum / 7;
+        }
+      }
+
+      return entries;
+    };
+
+    const dailyTrends = processTrendData(dailyMap, 'daily').slice(-90); // Last 90 days
+    const weeklyTrends = processTrendData(weeklyMap, 'weekly').slice(-52); // Last 52 weeks
+    const monthlyTrends = processTrendData(monthlyMap, 'monthly').slice(-24); // Last 24 months
+
+    // Calculate summary statistics
+    const totalRevenue = data.reduce((sum, record) => sum + record.Total_Combined_Revenue, 0);
+    const totalTransactions = data.length;
+    const averageDailyRevenue = dailyTrends.length > 0 ? dailyTrends.reduce((sum, day) => sum + day.revenue, 0) / dailyTrends.length : 0;
+    const averageMonthlyRevenue = monthlyTrends.length > 0 ? monthlyTrends.reduce((sum, month) => sum + month.revenue, 0) / monthlyTrends.length : 0;
+
+    // Calculate growth rates
+    const revenueGrowthRate = monthlyTrends.length >= 2 
+      ? ((monthlyTrends[monthlyTrends.length - 1].revenue - monthlyTrends[monthlyTrends.length - 2].revenue) / monthlyTrends[monthlyTrends.length - 2].revenue) * 100 
+      : 0;
+    
+    const transactionGrowthRate = monthlyTrends.length >= 2 
+      ? ((monthlyTrends[monthlyTrends.length - 1].transactions - monthlyTrends[monthlyTrends.length - 2].transactions) / monthlyTrends[monthlyTrends.length - 2].transactions) * 100 
+      : 0;
+
+    // Find best and worst periods
+    const bestDay = dailyTrends.length > 0 ? dailyTrends.reduce((max, day) => day.revenue > max.revenue ? day : max).date : '';
+    const worstDay = dailyTrends.length > 0 ? dailyTrends.reduce((min, day) => day.revenue < min.revenue ? day : min).date : '';
+    const bestMonth = monthlyTrends.length > 0 ? monthlyTrends.reduce((max, month) => month.revenue > max.revenue ? month : max).date : '';
+    const worstMonth = monthlyTrends.length > 0 ? monthlyTrends.reduce((min, month) => month.revenue < min.revenue ? month : min).date : '';
+
+    // Determine trend direction
+    const trendDirection = revenueGrowthRate > 5 ? 'increasing' : revenueGrowthRate < -5 ? 'decreasing' : 'stable';
+
+    // Detect seasonal patterns (simplified)
+    const seasonalPattern = monthlyTrends.length >= 12 ? 'Annual pattern detected' : 'Insufficient data for seasonal analysis';
+
+    return {
+      daily: dailyTrends,
+      weekly: weeklyTrends,
+      monthly: monthlyTrends,
+      summary: {
+        totalRevenue,
+        totalTransactions,
+        averageDailyRevenue,
+        averageMonthlyRevenue,
+        revenueGrowthRate,
+        transactionGrowthRate,
+        bestDay,
+        worstDay,
+        bestMonth,
+        worstMonth,
+        seasonalPattern,
+        trendDirection,
+      },
+    };
   }, []);
 
   // Memoized calculations
@@ -230,15 +439,65 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
       averageValue: method.averageValue,
     })), [paymentMethodAnalysis]);
 
+  // Prepare trend data
   const trendLineData = useMemo(() => 
-    revenueTrends.map(trend => ({
+    revenueTrends.daily.map(trend => ({
       name: trend.date,
       value: trend.revenue,
       date: trend.date,
       revenue: trend.revenue,
       transactions: trend.transactions,
       averageValue: trend.averageValue,
-    })), [revenueTrends]);
+      payeeFees: trend.payeeFees,
+      payorFees: trend.payorFees,
+      additionalCharges: trend.additionalCharges,
+      revenueGrowth: trend.revenueGrowth,
+      transactionGrowth: trend.transactionGrowth,
+      movingAverage: trend.movingAverage,
+      cumulativeRevenue: trend.cumulativeRevenue,
+      revenuePerTransaction: trend.revenuePerTransaction,
+      successRate: trend.successRate,
+    })), [revenueTrends.daily]);
+
+  // Prepare weekly trend data
+  const weeklyTrendData = useMemo(() => 
+    revenueTrends.weekly.map(trend => ({
+      name: trend.date,
+      value: trend.revenue,
+      date: trend.date,
+      revenue: trend.revenue,
+      transactions: trend.transactions,
+      averageValue: trend.averageValue,
+      payeeFees: trend.payeeFees,
+      payorFees: trend.payorFees,
+      additionalCharges: trend.additionalCharges,
+      revenueGrowth: trend.revenueGrowth,
+      transactionGrowth: trend.transactionGrowth,
+      movingAverage: trend.movingAverage,
+      cumulativeRevenue: trend.cumulativeRevenue,
+      revenuePerTransaction: trend.revenuePerTransaction,
+      successRate: trend.successRate,
+    })), [revenueTrends.weekly]);
+
+  // Prepare monthly trend data
+  const monthlyTrendData = useMemo(() => 
+    revenueTrends.monthly.map(trend => ({
+      name: trend.date,
+      value: trend.revenue,
+      date: trend.date,
+      revenue: trend.revenue,
+      transactions: trend.transactions,
+      averageValue: trend.averageValue,
+      payeeFees: trend.payeeFees,
+      payorFees: trend.payorFees,
+      additionalCharges: trend.additionalCharges,
+      revenueGrowth: trend.revenueGrowth,
+      transactionGrowth: trend.transactionGrowth,
+      movingAverage: trend.movingAverage,
+      cumulativeRevenue: trend.cumulativeRevenue,
+      revenuePerTransaction: trend.revenuePerTransaction,
+      successRate: trend.successRate,
+    })), [revenueTrends.monthly]);
 
   // Handle chart interactions
   const handlePieChartClick = useCallback((data: any) => {
@@ -480,29 +739,248 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
           />
         </ChartContainer>
 
-        {/* Revenue Trends Line Chart */}
-        <ChartContainer
-          title="Revenue Trends"
-          subtitle="Daily revenue over time"
-          type="line"
-          size="lg"
-          showExport={true}
-          onExport={handleExport}
-          className="bg-white rounded-lg shadow"
-        >
-          <LineChart
-            data={trendLineData}
-            title="Revenue Trends"
-            subtitle="Daily revenue over time"
-            xAxisDataKey="date"
-            yAxisDataKey="revenue"
-            showLegend={true}
-            onDataPointClick={handleLineChartClick}
-            enableDrillDown={true}
-            ariaLabel="Line chart showing revenue trends over time"
-            ariaDescription="Interactive line chart displaying daily revenue trends"
-          />
-        </ChartContainer>
+        {/* Revenue Trends Section */}
+        <div className="space-y-6">
+          {/* Revenue Trends Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(revenueTrends.summary.totalRevenue)}</p>
+                  <p className={`text-sm ${revenueTrends.summary.revenueGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {revenueTrends.summary.revenueGrowthRate >= 0 ? '+' : ''}{formatPercentage(revenueTrends.summary.revenueGrowthRate)} vs last month
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Avg. Daily Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(revenueTrends.summary.averageDailyRevenue)}</p>
+                  <p className="text-sm text-gray-500">Last 90 days</p>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Trend Direction</p>
+                  <p className={`text-2xl font-bold ${
+                    revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
+                    revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                  }`}>
+                    {revenueTrends.summary.trendDirection.charAt(0).toUpperCase() + revenueTrends.summary.trendDirection.slice(1)}
+                  </p>
+                  <p className="text-sm text-gray-500">{revenueTrends.summary.seasonalPattern}</p>
+                </div>
+                <div className={`p-2 rounded-full ${
+                  revenueTrends.summary.trendDirection === 'increasing' ? 'bg-green-100' : 
+                  revenueTrends.summary.trendDirection === 'decreasing' ? 'bg-red-100' : 'bg-gray-100'
+                }`}>
+                  <svg className={`w-6 h-6 ${
+                    revenueTrends.summary.trendDirection === 'increasing' ? 'text-green-600' : 
+                    revenueTrends.summary.trendDirection === 'decreasing' ? 'text-red-600' : 'text-gray-600'
+                  }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Best Performing Day</p>
+                  <p className="text-2xl font-bold text-gray-900">{revenueTrends.summary.bestDay || 'N/A'}</p>
+                  <p className="text-sm text-gray-500">Highest revenue day</p>
+                </div>
+                <div className="p-2 bg-purple-100 rounded-full">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Revenue Trends */}
+          <ChartContainer
+            title="Daily Revenue Trends"
+            subtitle="Revenue performance over the last 90 days with growth indicators"
+            type="line"
+            size="lg"
+            showExport={true}
+            onExport={handleExport}
+            className="bg-white rounded-lg shadow"
+          >
+            <LineChart
+              data={trendLineData}
+              title="Daily Revenue Trends"
+              subtitle="Revenue performance over the last 90 days with growth indicators"
+              xAxisDataKey="date"
+              yAxisDataKey="revenue"
+              showLegend={true}
+              onDataPointClick={handleLineChartClick}
+              enableDrillDown={true}
+              ariaLabel="Line chart showing daily revenue trends over time"
+              ariaDescription="Interactive line chart displaying daily revenue trends with growth indicators and moving averages"
+            />
+          </ChartContainer>
+
+          {/* Weekly and Monthly Trends Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Weekly Revenue Trends */}
+            <ChartContainer
+              title="Weekly Revenue Trends"
+              subtitle="Revenue performance by week with cumulative analysis"
+              type="line"
+              size="md"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <LineChart
+                data={weeklyTrendData}
+                title="Weekly Revenue Trends"
+                subtitle="Revenue performance by week with cumulative analysis"
+                xAxisDataKey="date"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleLineChartClick}
+                enableDrillDown={true}
+                ariaLabel="Line chart showing weekly revenue trends"
+                ariaDescription="Interactive line chart displaying weekly revenue trends with cumulative analysis"
+              />
+            </ChartContainer>
+
+            {/* Monthly Revenue Trends */}
+            <ChartContainer
+              title="Monthly Revenue Trends"
+              subtitle="Revenue performance by month with seasonal patterns"
+              type="line"
+              size="md"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <LineChart
+                data={monthlyTrendData}
+                title="Monthly Revenue Trends"
+                subtitle="Revenue performance by month with seasonal patterns"
+                xAxisDataKey="date"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleLineChartClick}
+                enableDrillDown={true}
+                ariaLabel="Line chart showing monthly revenue trends"
+                ariaDescription="Interactive line chart displaying monthly revenue trends with seasonal pattern analysis"
+              />
+            </ChartContainer>
+          </div>
+
+          {/* Revenue Trends Analysis Table */}
+          <ChartContainer
+            title="Revenue Trends Analysis"
+            subtitle="Detailed breakdown of revenue trends with growth metrics and performance indicators"
+            type="table"
+            size="xl"
+            showExport={true}
+            onExport={handleExport}
+            className="bg-white rounded-lg shadow"
+          >
+            <DataTable
+              data={revenueTrends.daily.slice(-30)} // Last 30 days
+              columns={[
+                {
+                  key: 'date',
+                  title: 'Date',
+                  sortable: true,
+                  render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
+                },
+                {
+                  key: 'revenue',
+                  title: 'Revenue',
+                  sortable: true,
+                  render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
+                },
+                {
+                  key: 'transactions',
+                  title: 'Transactions',
+                  sortable: true,
+                  render: (value: number) => <span className="text-gray-600">{formatNumber(value)}</span>,
+                },
+                {
+                  key: 'revenuePerTransaction',
+                  title: 'Revenue/Transaction',
+                  sortable: true,
+                  render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
+                },
+                {
+                  key: 'revenueGrowth',
+                  title: 'Revenue Growth',
+                  sortable: true,
+                  render: (value: number) => (
+                    <span className={`font-medium ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {value >= 0 ? '+' : ''}{formatPercentage(value)}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'transactionGrowth',
+                  title: 'Transaction Growth',
+                  sortable: true,
+                  render: (value: number) => (
+                    <span className={`font-medium ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {value >= 0 ? '+' : ''}{formatPercentage(value)}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'movingAverage',
+                  title: '7-Day Moving Avg',
+                  sortable: true,
+                  render: (value: number) => <span className="text-purple-600 font-medium">{formatCurrency(value)}</span>,
+                },
+                {
+                  key: 'cumulativeRevenue',
+                  title: 'Cumulative Revenue',
+                  sortable: true,
+                  render: (value: number) => <span className="text-indigo-600 font-medium">{formatCurrency(value)}</span>,
+                },
+                {
+                  key: 'successRate',
+                  title: 'Success Rate',
+                  sortable: true,
+                  render: (value: number) => (
+                    <span className={`font-medium ${value >= 95 ? 'text-green-600' : value >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {formatPercentage(value)}
+                    </span>
+                  ),
+                },
+              ]}
+              sortable={true}
+              searchable={true}
+              pagination={true}
+              pageSize={15}
+              ariaLabel="Revenue trends analysis data table"
+              ariaDescription="Comprehensive sortable and searchable table showing detailed revenue trends with growth metrics, moving averages, and performance indicators"
+            />
+          </ChartContainer>
+        </div>
       </div>
 
       {/* Company Performance Table */}
