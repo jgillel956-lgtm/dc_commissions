@@ -147,7 +147,7 @@
   - [x] 5.6 Create daily/monthly revenue trend visualizations
   - [x] 5.7 Implement drill-down functionality for company and payment method analysis
   - [x] 5.8 Add export functionality for revenue analysis data
-  - [ ] 5.9 Create responsive layout for KPI widgets and charts
+  - [x] 5.9 Create responsive layout for KPI widgets and charts
 
 - [ ] 6.0 Commission Analysis Tab Implementation
   - [ ] 6.1 Create commission analysis tab component `src/components/dashboard/CommissionAnalysisTab.tsx`

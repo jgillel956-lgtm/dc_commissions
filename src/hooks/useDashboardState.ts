@@ -85,17 +85,13 @@ const DEFAULT_FILTERS: DashboardFilters = {
     selected_methods: []
   },
   revenue_sources: {
-    transaction_fees: false,
-    payor_fees: false,
-    interest_revenue: false
+    selected_sources: []
   },
   employees: {
     selected_employees: []
   },
   commission_types: {
-    employee_commissions: false,
-    referral_partner_commissions: false,
-    interest_commissions: false
+    selected_types: []
   },
   amount_range: {
     min_amount: undefined,

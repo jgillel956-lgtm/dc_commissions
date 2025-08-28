@@ -87,20 +87,15 @@ const FilterPersistence: React.FC<FilterPersistenceProps> = ({
     }
 
     // Revenue sources filter
-    if (filters.revenue_sources.transaction_fees || filters.revenue_sources.payor_fees || filters.revenue_sources.interest_revenue) {
-      const sources = [];
-      if (filters.revenue_sources.transaction_fees) sources.push('Transaction Fees');
-      if (filters.revenue_sources.payor_fees) sources.push('Payor Fees');
-      if (filters.revenue_sources.interest_revenue) sources.push('Interest Revenue');
-      
+    if (filters.revenue_sources.selected_sources.length > 0) {
       activeFiltersList.push({
         key: 'revenue_sources',
         label: 'Revenue Sources',
         value: filters.revenue_sources,
-        displayValue: sources.length === 1 
-          ? sources[0] 
-          : `${sources.length} sources`,
-        count: sources.length
+        displayValue: filters.revenue_sources.selected_sources.length === 1 
+          ? `Source ${filters.revenue_sources.selected_sources[0]}` 
+          : `${filters.revenue_sources.selected_sources.length} sources`,
+        count: filters.revenue_sources.selected_sources.length
       });
     }
 
@@ -118,20 +113,15 @@ const FilterPersistence: React.FC<FilterPersistenceProps> = ({
     }
 
     // Commission types filter
-    if (filters.commission_types.employee_commissions || filters.commission_types.referral_partner_commissions || filters.commission_types.interest_commissions) {
-      const types = [];
-      if (filters.commission_types.employee_commissions) types.push('Employee Commissions');
-      if (filters.commission_types.referral_partner_commissions) types.push('Referral Partner Commissions');
-      if (filters.commission_types.interest_commissions) types.push('Interest Commissions');
-      
+    if (filters.commission_types.selected_types.length > 0) {
       activeFiltersList.push({
         key: 'commission_types',
         label: 'Commission Types',
         value: filters.commission_types,
-        displayValue: types.length === 1 
-          ? types[0] 
-          : `${types.length} types`,
-        count: types.length
+        displayValue: filters.commission_types.selected_types.length === 1 
+          ? `Type ${filters.commission_types.selected_types[0]}` 
+          : `${filters.commission_types.selected_types.length} types`,
+        count: filters.commission_types.selected_types.length
       });
     }
 
