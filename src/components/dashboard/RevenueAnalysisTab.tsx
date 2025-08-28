@@ -520,41 +520,93 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
           columns={[
             {
               key: 'company',
-              title: 'Company',
+              header: 'Company',
               sortable: true,
               render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
             },
             {
               key: 'totalRevenue',
-              title: 'Total Revenue',
+              header: 'Total Revenue',
               sortable: true,
               render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
             },
             {
               key: 'transactionCount',
-              title: 'Transactions',
+              header: 'Transactions',
               sortable: true,
               render: (value: number) => <span className="text-gray-600">{formatNumber(value)}</span>,
             },
             {
+              key: 'transactionVolume',
+              header: 'Transaction Volume',
+              sortable: true,
+              render: (value: number) => <span className="text-purple-600 font-medium">{formatCurrency(value)}</span>,
+            },
+            {
               key: 'averageValue',
-              title: 'Avg. Transaction',
+              header: 'Avg. Transaction',
               sortable: true,
               render: (value: number) => <span className="text-gray-600">{formatCurrency(value)}</span>,
             },
             {
-              key: 'revenueShare',
-              title: 'Revenue Share',
+              key: 'averageRevenuePerTransaction',
+              header: 'Avg. Revenue/Transaction',
               sortable: true,
-              render: (value: number) => <span className="text-blue-600 font-medium">{formatPercentage(value)}</span>,
+              render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
+            },
+            {
+              key: 'revenueShare',
+              header: 'Revenue Share',
+              sortable: true,
+              render: (value: number) => <span className="text-indigo-600 font-medium">{formatPercentage(value)}</span>,
+            },
+            {
+              key: 'revenueEfficiency',
+              header: 'Revenue Efficiency',
+              sortable: true,
+              render: (value: number) => (
+                <span className={`font-medium ${value >= 5 ? 'text-green-600' : value >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {formatPercentage(value)}
+                </span>
+              ),
+            },
+            {
+              key: 'payeeFeeRevenue',
+              header: 'Payee Fees',
+              sortable: true,
+              render: (value: number) => <span className="text-blue-500">{formatCurrency(value)}</span>,
+            },
+            {
+              key: 'payorFeeRevenue',
+              header: 'Payor Fees',
+              sortable: true,
+              render: (value: number) => <span className="text-green-500">{formatCurrency(value)}</span>,
+            },
+            {
+              key: 'additionalCharges',
+              header: 'Additional Charges',
+              sortable: true,
+              render: (value: number) => <span className="text-orange-500">{formatCurrency(value)}</span>,
+            },
+            {
+              key: 'firstTransactionDate',
+              header: 'First Transaction',
+              sortable: true,
+              render: (value: string) => <span className="text-gray-600 text-sm">{value}</span>,
+            },
+            {
+              key: 'lastTransactionDate',
+              header: 'Last Transaction',
+              sortable: true,
+              render: (value: string) => <span className="text-gray-600 text-sm">{value}</span>,
             },
           ]}
           sortable={true}
           searchable={true}
           pagination={true}
-          pageSize={10}
-          ariaLabel="Company performance data table"
-          ariaDescription="Sortable and searchable table showing detailed company performance metrics"
+          pageSize={15}
+          ariaLabel="Company performance analysis data table"
+          ariaDescription="Comprehensive sortable and searchable table showing detailed company performance metrics including revenue breakdown, transaction analysis, and efficiency indicators"
         />
       </ChartContainer>
     </div>
