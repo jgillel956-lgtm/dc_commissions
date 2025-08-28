@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -382,42 +383,103 @@ class DashboardExportService {
   }
   
   async exportToExcel(data, metadata) {
-    // For Excel export, we'll create a simple CSV-like format
-    // In a real implementation, you'd use a library like xlsx
-    const workbook = {
-      SheetNames: ['Dashboard Data'],
-      Sheets: {
-        'Dashboard Data': {
-          '!ref': `A1:${String.fromCharCode(65 + Object.keys(data[0] || {}).length - 1)}${data.length + 1}`,
-          '!cols': Object.keys(data[0] || {}).map(() => ({ width: 15 }))
-        }
+    // Create a new workbook
+    const workbook = XLSX.utils.book_new();
+    
+    // Define styles for headers and data
+    const headerStyle = {
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "4472C4" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" }
       }
     };
     
-    // Add headers
-    const headers = Object.keys(data[0] || {});
-    headers.forEach((header, index) => {
-      workbook.Sheets['Dashboard Data'][`${String.fromCharCode(65 + index)}1`] = {
-        v: header,
-        t: 's',
-        s: { font: { bold: true } }
-      };
-    });
+    const currencyStyle = {
+      numFmt: '"$"#,##0.00',
+      alignment: { horizontal: "right" }
+    };
     
-    // Add data
-    data.forEach((row, rowIndex) => {
-      headers.forEach((header, colIndex) => {
-        const cellRef = `${String.fromCharCode(65 + colIndex)}${rowIndex + 2}`;
-        workbook.Sheets['Dashboard Data'][cellRef] = {
-          v: row[header],
-          t: typeof row[header] === 'number' ? 'n' : 's'
-        };
-      });
-    });
+    const percentageStyle = {
+      numFmt: "0.00%",
+      alignment: { horizontal: "right" }
+    };
     
-    // For now, return a simplified version
-    // In production, you'd use xlsx.writeFile(workbook, filePath)
-    return this.exportToCSV(data, metadata); // Fallback to CSV for now
+    const dateStyle = {
+      numFmt: "yyyy-mm-dd",
+      alignment: { horizontal: "center" }
+    };
+    
+    // Sheet 1: Executive Summary
+    const summaryData = this.createExecutiveSummarySheet(data, metadata);
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    
+    // Apply styles to summary sheet
+    this.applyExcelStyles(summarySheet, headerStyle, currencyStyle, percentageStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Executive Summary");
+    
+    // Sheet 2: Financial Data
+    const financialData = this.createFinancialDataSheet(data);
+    const financialSheet = XLSX.utils.aoa_to_sheet(financialData);
+    
+    // Apply styles to financial sheet
+    this.applyExcelStyles(financialSheet, headerStyle, currencyStyle, percentageStyle, dateStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, financialSheet, "Financial Data");
+    
+    // Sheet 3: Company Performance
+    const companyData = this.createCompanyPerformanceSheet(data);
+    const companySheet = XLSX.utils.aoa_to_sheet(companyData);
+    
+    // Apply styles to company sheet
+    this.applyExcelStyles(companySheet, headerStyle, currencyStyle, percentageStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, companySheet, "Company Performance");
+    
+    // Sheet 4: Payment Method Analysis
+    const paymentData = this.createPaymentMethodSheet(data);
+    const paymentSheet = XLSX.utils.aoa_to_sheet(paymentData);
+    
+    // Apply styles to payment sheet
+    this.applyExcelStyles(paymentSheet, headerStyle, currencyStyle, percentageStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, paymentSheet, "Payment Methods");
+    
+    // Sheet 5: Commission Analysis
+    const commissionData = this.createCommissionAnalysisSheet(data);
+    const commissionSheet = XLSX.utils.aoa_to_sheet(commissionData);
+    
+    // Apply styles to commission sheet
+    this.applyExcelStyles(commissionSheet, headerStyle, currencyStyle, percentageStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, commissionSheet, "Commission Analysis");
+    
+    // Sheet 6: Raw Data
+    const rawData = this.createRawDataSheet(data);
+    const rawSheet = XLSX.utils.aoa_to_sheet(rawData);
+    
+    // Apply styles to raw data sheet
+    this.applyExcelStyles(rawSheet, headerStyle, currencyStyle, percentageStyle, dateStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, rawSheet, "Raw Data");
+    
+    // Set workbook properties
+    workbook.Props = {
+      Title: "Revenue Dashboard Export Report",
+      Subject: "Revenue Analytics Dashboard Export",
+      Author: metadata.user.username,
+      CreatedDate: new Date(metadata.exportDate)
+    };
+    
+    // Generate Excel buffer
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    return excelBuffer;
   }
   
   async exportToPDF(data, metadata) {
@@ -669,6 +731,258 @@ class DashboardExportService {
     return filterDetails;
   }
   
+  // Excel Sheet Creation Methods
+  createExecutiveSummarySheet(data, metadata) {
+    const financialSummary = this.calculateFinancialSummary(data);
+    
+    return [
+      ['REVENUE DASHBOARD - EXECUTIVE SUMMARY'],
+      [''],
+      ['Report Information'],
+      ['Generated Date', new Date(metadata.exportDate).toLocaleString()],
+      ['Template', metadata.template || 'Custom Report'],
+      ['User', metadata.user.username],
+      ['Total Records', data.length],
+      [''],
+      ['Financial Summary'],
+      ['Total Revenue', financialSummary.totalRevenue],
+      ['Total Vendor Costs', financialSummary.totalVendorCosts],
+      ['Total Commissions', financialSummary.totalCommissions],
+      ['Net Profit', financialSummary.netProfit],
+      ['Profit Margin', financialSummary.profitMargin / 100],
+      [''],
+      ['Filter Summary'],
+      ['Date Range', this.getDateRangeSummary(metadata.filters)],
+      ['Companies', this.getCompanySummary(data)],
+      ['Payment Methods', this.getPaymentMethodSummary(data)]
+    ];
+  }
+  
+  createFinancialDataSheet(data) {
+    if (!data || data.length === 0) {
+      return [['No financial data available']];
+    }
+    
+    const headers = [
+      'Company',
+      'Transaction Date',
+      'Amount',
+      'Total Revenue',
+      'Vendor Cost',
+      'Employee Commission',
+      'Referral Commission',
+      'Net Profit',
+      'Payment Method'
+    ];
+    
+    const rows = data.map(record => [
+      record.company || 'N/A',
+      new Date(record.created_at),
+      record.amount || 0,
+      record.Total_Combined_Revenue || 0,
+      record.Total_Vendor_Cost || 0,
+      record.Employee_Commission || 0,
+      record.Referral_Partner_Commission || 0,
+      record.Final_Net_Profit || 0,
+      record.payment_method_description || 'N/A'
+    ]);
+    
+    return [headers, ...rows];
+  }
+  
+  createCompanyPerformanceSheet(data) {
+    if (!data || data.length === 0) {
+      return [['No company data available']];
+    }
+    
+    // Group by company
+    const companyStats = {};
+    data.forEach(record => {
+      const company = record.company || 'Unknown';
+      if (!companyStats[company]) {
+        companyStats[company] = {
+          totalAmount: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+          totalCommission: 0,
+          totalProfit: 0,
+          transactionCount: 0
+        };
+      }
+      
+      companyStats[company].totalAmount += record.amount || 0;
+      companyStats[company].totalRevenue += record.Total_Combined_Revenue || 0;
+      companyStats[company].totalCost += record.Total_Vendor_Cost || 0;
+      companyStats[company].totalCommission += (record.Employee_Commission || 0) + (record.Referral_Partner_Commission || 0);
+      companyStats[company].totalProfit += record.Final_Net_Profit || 0;
+      companyStats[company].transactionCount += 1;
+    });
+    
+    const headers = [
+      'Company',
+      'Transaction Count',
+      'Total Amount',
+      'Total Revenue',
+      'Total Cost',
+      'Total Commission',
+      'Net Profit',
+      'Profit Margin %'
+    ];
+    
+    const rows = Object.entries(companyStats).map(([company, stats]) => [
+      company,
+      stats.transactionCount,
+      stats.totalAmount,
+      stats.totalRevenue,
+      stats.totalCost,
+      stats.totalCommission,
+      stats.totalProfit,
+      stats.totalRevenue > 0 ? (stats.totalProfit / stats.totalRevenue) : 0
+    ]);
+    
+    return [headers, ...rows];
+  }
+  
+  createPaymentMethodSheet(data) {
+    if (!data || data.length === 0) {
+      return [['No payment method data available']];
+    }
+    
+    // Group by payment method
+    const methodStats = {};
+    data.forEach(record => {
+      const method = record.payment_method_description || 'Unknown';
+      if (!methodStats[method]) {
+        methodStats[method] = {
+          totalAmount: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+          totalCommission: 0,
+          totalProfit: 0,
+          transactionCount: 0
+        };
+      }
+      
+      methodStats[method].totalAmount += record.amount || 0;
+      methodStats[method].totalRevenue += record.Total_Combined_Revenue || 0;
+      methodStats[method].totalCost += record.Total_Vendor_Cost || 0;
+      methodStats[method].totalCommission += (record.Employee_Commission || 0) + (record.Referral_Partner_Commission || 0);
+      methodStats[method].totalProfit += record.Final_Net_Profit || 0;
+      methodStats[method].transactionCount += 1;
+    });
+    
+    const headers = [
+      'Payment Method',
+      'Transaction Count',
+      'Total Amount',
+      'Total Revenue',
+      'Total Cost',
+      'Total Commission',
+      'Net Profit',
+      'Profit Margin %'
+    ];
+    
+    const rows = Object.entries(methodStats).map(([method, stats]) => [
+      method,
+      stats.transactionCount,
+      stats.totalAmount,
+      stats.totalRevenue,
+      stats.totalCost,
+      stats.totalCommission,
+      stats.totalProfit,
+      stats.totalRevenue > 0 ? (stats.totalProfit / stats.totalRevenue) : 0
+    ]);
+    
+    return [headers, ...rows];
+  }
+  
+  createCommissionAnalysisSheet(data) {
+    if (!data || data.length === 0) {
+      return [['No commission data available']];
+    }
+    
+    const headers = [
+      'Employee Name',
+      'Referral Partner',
+      'Company',
+      'Transaction Amount',
+      'Employee Commission',
+      'Referral Commission',
+      'Total Commission',
+      'Commission Rate %',
+      'Transaction Date'
+    ];
+    
+    const rows = data.map(record => {
+      const totalCommission = (record.Employee_Commission || 0) + (record.Referral_Partner_Commission || 0);
+      const commissionRate = record.amount > 0 ? (totalCommission / record.amount) : 0;
+      
+      return [
+        record.employee_name || 'N/A',
+        record.referral_partner_name || 'N/A',
+        record.company || 'N/A',
+        record.amount || 0,
+        record.Employee_Commission || 0,
+        record.Referral_Partner_Commission || 0,
+        totalCommission,
+        commissionRate,
+        new Date(record.created_at)
+      ];
+    });
+    
+    return [headers, ...rows];
+  }
+  
+  createRawDataSheet(data) {
+    if (!data || data.length === 0) {
+      return [['No raw data available']];
+    }
+    
+    const headers = Object.keys(data[0]);
+    const rows = data.map(record => headers.map(header => record[header]));
+    
+    return [headers, ...rows];
+  }
+  
+  applyExcelStyles(sheet, headerStyle, currencyStyle, percentageStyle, dateStyle) {
+    // Get the range of the sheet
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    
+    // Apply styles to each cell
+    for (let row = range.s.r; row <= range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = sheet[cellRef];
+        
+        if (cell) {
+          // Apply header style to first row
+          if (row === 0) {
+            cell.s = headerStyle;
+          } else {
+            // Apply appropriate style based on content
+            if (typeof cell.v === 'number') {
+              if (cell.v < 1 && cell.v > 0) {
+                // Likely a percentage
+                cell.s = percentageStyle;
+              } else if (col >= 2 && col <= 7) {
+                // Likely currency values
+                cell.s = currencyStyle;
+              }
+            } else if (cell.v instanceof Date) {
+              cell.s = dateStyle;
+            }
+          }
+        }
+      }
+    }
+    
+    // Set column widths
+    sheet['!cols'] = [];
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      sheet['!cols'].push({ width: 15 });
+    }
+  }
+  
   async createExport(format, template, filters, user) {
     const exportId = this.generateExportId();
     const fileName = this.generateFileName(format, template, filters, user);
@@ -738,8 +1052,8 @@ class DashboardExportService {
       });
       
              // Write file
-       if (format === 'pdf') {
-         // For PDF, content is a buffer
+       if (format === 'pdf' || format === 'excel') {
+         // For PDF and Excel, content is a buffer
          fs.writeFileSync(filePath, Buffer.from(content));
        } else {
          // For other formats, content is a string
@@ -957,7 +1271,16 @@ export async function downloadHandler(req, res) {
     const downloadInfo = await exportService.downloadExport(exportId, user);
     
          // Set headers for file download
-     const contentType = downloadInfo.fileName.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
+     let contentType = 'application/octet-stream';
+     if (downloadInfo.fileName.endsWith('.pdf')) {
+       contentType = 'application/pdf';
+     } else if (downloadInfo.fileName.endsWith('.xlsx')) {
+       contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+     } else if (downloadInfo.fileName.endsWith('.csv')) {
+       contentType = 'text/csv';
+     } else if (downloadInfo.fileName.endsWith('.json')) {
+       contentType = 'application/json';
+     }
      res.setHeader('Content-Type', contentType);
      res.setHeader('Content-Disposition', `attachment; filename="${downloadInfo.fileName}"`);
      res.setHeader('Content-Length', downloadInfo.fileSize);
