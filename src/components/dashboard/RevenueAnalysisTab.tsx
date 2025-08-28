@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { ResponsiveContainer, ResponsiveText } from '../dashboard/ResponsiveDesign';
 import KPIWidget from './KPIWidget';
 import ChartContainer from './ChartContainer';
@@ -86,9 +86,60 @@ interface RevenueTrendAnalysis {
   };
 }
 
+// Drill-down state interface
+interface DrillDownState {
+  level: 'overview' | 'company' | 'paymentMethod' | 'transaction';
+  selectedCompany?: string;
+  selectedPaymentMethod?: string;
+  selectedDate?: string;
+  breadcrumb: string[];
+  data: RevenueMasterRecord[];
+}
+
+// Enhanced drill-down data interface
+interface DrillDownData {
+  companyDetails?: {
+    name: string;
+    totalRevenue: number;
+    transactionCount: number;
+    averageValue: number;
+    revenueShare: number;
+    payeeFeeRevenue: number;
+    payorFeeRevenue: number;
+    additionalCharges: number;
+    revenueEfficiency: number;
+    successRate: number;
+    paymentMethodBreakdown: PaymentMethodAnalysis[];
+    monthlyTrends: RevenueTrend[];
+    recentTransactions: RevenueMasterRecord[];
+  };
+  paymentMethodDetails?: {
+    name: string;
+    totalRevenue: number;
+    transactionCount: number;
+    averageValue: number;
+    revenueShare: number;
+    payeeFeeRevenue: number;
+    payorFeeRevenue: number;
+    additionalCharges: number;
+    revenueEfficiency: number;
+    successRate: number;
+    companyBreakdown: CompanyPerformance[];
+    monthlyTrends: RevenueTrend[];
+    recentTransactions: RevenueMasterRecord[];
+  };
+}
+
 const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' }) => {
   const dashboardState = useDashboardState();
   const { fetchData, fetchChartData } = useRevenueData();
+
+  // Drill-down state management
+  const [drillDownState, setDrillDownState] = useState<DrillDownState>({
+    level: 'overview',
+    breadcrumb: ['Revenue Analysis'],
+    data: dashboardState.data,
+  });
 
   // Calculate KPI metrics from revenue data
   const calculateKPIs = useCallback((data: RevenueMasterRecord[]): RevenueKPIs => {
@@ -415,6 +466,187 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
   const paymentMethodAnalysis = useMemo(() => calculatePaymentMethodAnalysis(dashboardState.data), [dashboardState.data, calculatePaymentMethodAnalysis]);
   const revenueTrends = useMemo(() => calculateRevenueTrends(dashboardState.data), [dashboardState.data, calculateRevenueTrends]);
 
+  // Drill-down data calculations
+  const drillDownData = useMemo((): DrillDownData => {
+    if (drillDownState.level === 'overview') return {};
+
+    const filteredData = drillDownState.data.filter(record => {
+      if (drillDownState.level === 'company' && drillDownState.selectedCompany) {
+        return record.company === drillDownState.selectedCompany;
+      }
+      if (drillDownState.level === 'paymentMethod' && drillDownState.selectedPaymentMethod) {
+        return record.payment_method_description === drillDownState.selectedPaymentMethod;
+      }
+      return true;
+    });
+
+    if (drillDownState.level === 'company' && drillDownState.selectedCompany) {
+      const companyData = filteredData;
+      const totalRevenue = companyData.reduce((sum, record) => sum + record.Total_Combined_Revenue, 0);
+      const totalTransactions = companyData.length;
+      const payeeFeeRevenue = companyData.reduce((sum, record) => sum + record.Payee_Fee_Revenue, 0);
+      const payorFeeRevenue = companyData.reduce((sum, record) => sum + record.Payor_Fee_Revenue, 0);
+      const additionalCharges = companyData.reduce((sum, record) => sum + (record.bundle_charges || 0) + (record.postage_fee || 0), 0);
+      const successfulTransactions = companyData.filter(record => record.api_transaction_status === 'completed').length;
+      
+      // Calculate payment method breakdown for this company
+      const paymentMethodMap = new Map<string, { revenue: number; count: number; totalValue: number }>();
+      companyData.forEach(record => {
+        const method = record.payment_method_description;
+        const existing = paymentMethodMap.get(method) || { revenue: 0, count: 0, totalValue: 0 };
+        paymentMethodMap.set(method, {
+          revenue: existing.revenue + record.Total_Combined_Revenue,
+          count: existing.count + 1,
+          totalValue: existing.totalValue + record.amount,
+        });
+      });
+
+      const paymentMethodBreakdown = Array.from(paymentMethodMap.entries())
+        .map(([method, stats]) => ({
+          method,
+          totalRevenue: stats.revenue,
+          transactionCount: stats.count,
+          averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
+          revenueShare: totalRevenue > 0 ? (stats.revenue / totalRevenue) * 100 : 0,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+      // Calculate monthly trends for this company
+      const monthlyMap = new Map<string, { revenue: number; count: number; totalValue: number }>();
+      companyData.forEach(record => {
+        const date = new Date(record.created_at);
+        const monthlyKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const existing = monthlyMap.get(monthlyKey) || { revenue: 0, count: 0, totalValue: 0 };
+        monthlyMap.set(monthlyKey, {
+          revenue: existing.revenue + record.Total_Combined_Revenue,
+          count: existing.count + 1,
+          totalValue: existing.totalValue + record.amount,
+        });
+      });
+
+      const monthlyTrends = Array.from(monthlyMap.entries())
+        .map(([date, stats]) => ({
+          date,
+          revenue: stats.revenue,
+          transactions: stats.count,
+          averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
+          payeeFees: 0, // Would need to calculate from individual records
+          payorFees: 0,
+          additionalCharges: 0,
+          revenueGrowth: 0,
+          transactionGrowth: 0,
+          movingAverage: 0,
+          cumulativeRevenue: 0,
+          revenuePerTransaction: stats.count > 0 ? stats.revenue / stats.count : 0,
+          successRate: 0,
+          period: 'monthly' as const,
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      return {
+        companyDetails: {
+          name: drillDownState.selectedCompany!,
+          totalRevenue,
+          transactionCount: totalTransactions,
+          averageValue: totalTransactions > 0 ? companyData.reduce((sum, record) => sum + record.amount, 0) / totalTransactions : 0,
+          revenueShare: dashboardState.data.length > 0 ? (totalRevenue / dashboardState.data.reduce((sum, record) => sum + record.Total_Combined_Revenue, 0)) * 100 : 0,
+          payeeFeeRevenue,
+          payorFeeRevenue,
+          additionalCharges,
+          revenueEfficiency: companyData.reduce((sum, record) => sum + record.amount, 0) > 0 ? (totalRevenue / companyData.reduce((sum, record) => sum + record.amount, 0)) * 100 : 0,
+          successRate: totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0,
+          paymentMethodBreakdown,
+          monthlyTrends,
+          recentTransactions: companyData.slice(-10).reverse(), // Last 10 transactions
+        },
+      };
+    }
+
+    if (drillDownState.level === 'paymentMethod' && drillDownState.selectedPaymentMethod) {
+      const methodData = filteredData;
+      const totalRevenue = methodData.reduce((sum, record) => sum + record.Total_Combined_Revenue, 0);
+      const totalTransactions = methodData.length;
+      const payeeFeeRevenue = methodData.reduce((sum, record) => sum + record.Payee_Fee_Revenue, 0);
+      const payorFeeRevenue = methodData.reduce((sum, record) => sum + record.Payor_Fee_Revenue, 0);
+      const additionalCharges = methodData.reduce((sum, record) => sum + (record.bundle_charges || 0) + (record.postage_fee || 0), 0);
+      const successfulTransactions = methodData.filter(record => record.api_transaction_status === 'completed').length;
+      
+      // Calculate company breakdown for this payment method
+      const companyMap = new Map<string, { revenue: number; count: number; totalValue: number }>();
+      methodData.forEach(record => {
+        const company = record.company;
+        const existing = companyMap.get(company) || { revenue: 0, count: 0, totalValue: 0 };
+        companyMap.set(company, {
+          revenue: existing.revenue + record.Total_Combined_Revenue,
+          count: existing.count + 1,
+          totalValue: existing.totalValue + record.amount,
+        });
+      });
+
+      const companyBreakdown = Array.from(companyMap.entries())
+        .map(([company, stats]) => ({
+          company,
+          totalRevenue: stats.revenue,
+          transactionCount: stats.count,
+          averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
+          revenueShare: totalRevenue > 0 ? (stats.revenue / totalRevenue) * 100 : 0,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+      // Calculate monthly trends for this payment method
+      const monthlyMap = new Map<string, { revenue: number; count: number; totalValue: number }>();
+      methodData.forEach(record => {
+        const date = new Date(record.created_at);
+        const monthlyKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const existing = monthlyMap.get(monthlyKey) || { revenue: 0, count: 0, totalValue: 0 };
+        monthlyMap.set(monthlyKey, {
+          revenue: existing.revenue + record.Total_Combined_Revenue,
+          count: existing.count + 1,
+          totalValue: existing.totalValue + record.amount,
+        });
+      });
+
+      const monthlyTrends = Array.from(monthlyMap.entries())
+        .map(([date, stats]) => ({
+          date,
+          revenue: stats.revenue,
+          transactions: stats.count,
+          averageValue: stats.count > 0 ? stats.totalValue / stats.count : 0,
+          payeeFees: 0,
+          payorFees: 0,
+          additionalCharges: 0,
+          revenueGrowth: 0,
+          transactionGrowth: 0,
+          movingAverage: 0,
+          cumulativeRevenue: 0,
+          revenuePerTransaction: stats.count > 0 ? stats.revenue / stats.count : 0,
+          successRate: 0,
+          period: 'monthly' as const,
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      return {
+        paymentMethodDetails: {
+          name: drillDownState.selectedPaymentMethod!,
+          totalRevenue,
+          transactionCount: totalTransactions,
+          averageValue: totalTransactions > 0 ? methodData.reduce((sum, record) => sum + record.amount, 0) / totalTransactions : 0,
+          revenueShare: dashboardState.data.length > 0 ? (totalRevenue / dashboardState.data.reduce((sum, record) => sum + record.Total_Combined_Revenue, 0)) * 100 : 0,
+          payeeFeeRevenue,
+          payorFeeRevenue,
+          additionalCharges,
+          revenueEfficiency: methodData.reduce((sum, record) => sum + record.amount, 0) > 0 ? (totalRevenue / methodData.reduce((sum, record) => sum + record.amount, 0)) * 100 : 0,
+          successRate: totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0,
+          companyBreakdown,
+          monthlyTrends,
+          recentTransactions: methodData.slice(-10).reverse(), // Last 10 transactions
+        },
+      };
+    }
+
+    return {};
+  }, [drillDownState, dashboardState.data]);
+
   // Prepare chart data
   const pieChartData = useMemo(() => [
     { name: 'Payee Fees', value: revenueBreakdown.payeeFees, color: '#3B82F6' },
@@ -499,29 +731,86 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
       successRate: trend.successRate,
     })), [revenueTrends.monthly]);
 
-  // Handle chart interactions
+  // Enhanced drill-down handlers
   const handlePieChartClick = useCallback((data: any) => {
     console.log('Pie chart clicked:', data);
-    // Implement drill-down functionality
+    if (data.name === 'Payee Fees' || data.name === 'Payor Fees') {
+      // Could drill down to show breakdown by company or payment method
+      setDrillDownState(prev => ({
+        ...prev,
+        level: 'overview',
+        breadcrumb: ['Revenue Analysis', data.name],
+      }));
+    }
   }, []);
 
   // Handle drill-up navigation
   const handleDrillUp = useCallback((path: string[], parentSegment: string | null) => {
     console.log('Drilling up:', { path, parentSegment });
-    // This would return to the previous level
-  }, []);
+    if (drillDownState.level !== 'overview') {
+      setDrillDownState(prev => ({
+        level: 'overview',
+        breadcrumb: ['Revenue Analysis'],
+        data: dashboardState.data,
+      }));
+    }
+  }, [drillDownState.level, dashboardState.data]);
 
-  // Handle bar chart click
+  // Enhanced bar chart click handler
   const handleBarChartClick = useCallback((data: any) => {
     console.log('Bar chart clicked:', data);
-    // Implement drill-down functionality
-  }, []);
+    
+    // Determine which chart was clicked based on context
+    const isCompanyChart = companyPerformance.some(company => company.company === data.name);
+    const isPaymentMethodChart = paymentMethodAnalysis.some(method => method.method === data.name);
+    
+    if (isCompanyChart) {
+      setDrillDownState(prev => ({
+        level: 'company',
+        selectedCompany: data.name,
+        breadcrumb: ['Revenue Analysis', 'Companies', data.name],
+        data: dashboardState.data,
+      }));
+    } else if (isPaymentMethodChart) {
+      setDrillDownState(prev => ({
+        level: 'paymentMethod',
+        selectedPaymentMethod: data.name,
+        breadcrumb: ['Revenue Analysis', 'Payment Methods', data.name],
+        data: dashboardState.data,
+      }));
+    }
+  }, [companyPerformance, paymentMethodAnalysis, dashboardState.data]);
 
-  // Handle line chart click
+  // Enhanced line chart click handler
   const handleLineChartClick = useCallback((data: any) => {
     console.log('Line chart clicked:', data);
-    // Implement drill-down functionality
+    // Could drill down to show transactions for that specific date
+    setDrillDownState(prev => ({
+      ...prev,
+      level: 'transaction',
+      selectedDate: data.date,
+      breadcrumb: [...prev.breadcrumb, data.date],
+    }));
   }, []);
+
+  // Navigation handler
+  const handleBreadcrumbClick = useCallback((index: number) => {
+    if (index === 0) {
+      // Return to overview
+      setDrillDownState({
+        level: 'overview',
+        breadcrumb: ['Revenue Analysis'],
+        data: dashboardState.data,
+      });
+    } else if (index === 1) {
+      // Return to category level
+      setDrillDownState(prev => ({
+        level: 'overview',
+        breadcrumb: ['Revenue Analysis'],
+        data: dashboardState.data,
+      }));
+    }
+  }, [dashboardState.data]);
 
   // Handle export functionality
   const handleExport = useCallback((format: 'png' | 'pdf' | 'csv' | 'json') => {
@@ -564,6 +853,415 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Render drill-down view
+  if (drillDownState.level !== 'overview') {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        {/* Breadcrumb Navigation */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <nav className="flex" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              {drillDownState.breadcrumb.map((item, index) => (
+                <li key={index} className="inline-flex items-center">
+                  {index > 0 && (
+                    <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <button
+                    onClick={() => handleBreadcrumbClick(index)}
+                    className={`inline-flex items-center text-sm font-medium ${
+                      index === drillDownState.breadcrumb.length - 1
+                        ? 'text-gray-500 cursor-default'
+                        : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
+
+        {/* Drill-down Content */}
+        {drillDownState.level === 'company' && drillDownData.companyDetails && (
+          <div className="space-y-6">
+            {/* Company Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(drillDownData.companyDetails.totalRevenue)}</p>
+                    <p className="text-sm text-gray-500">{formatPercentage(drillDownData.companyDetails.revenueShare)} of total</p>
+                  </div>
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Transactions</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatNumber(drillDownData.companyDetails.transactionCount)}</p>
+                    <p className="text-sm text-gray-500">Avg: {formatCurrency(drillDownData.companyDetails.averageValue)}</p>
+                  </div>
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatPercentage(drillDownData.companyDetails.successRate)}</p>
+                    <p className="text-sm text-gray-500">Revenue Efficiency: {formatPercentage(drillDownData.companyDetails.revenueEfficiency)}</p>
+                  </div>
+                  <div className="p-2 bg-purple-100 rounded-full">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Fee Breakdown</p>
+                    <p className="text-lg font-bold text-gray-900">{formatCurrency(drillDownData.companyDetails.payeeFeeRevenue + drillDownData.companyDetails.payorFeeRevenue)}</p>
+                    <p className="text-sm text-gray-500">Payee: {formatCurrency(drillDownData.companyDetails.payeeFeeRevenue)} | Payor: {formatCurrency(drillDownData.companyDetails.payorFeeRevenue)}</p>
+                  </div>
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method Breakdown for Company */}
+            <ChartContainer
+              title={`Payment Methods for ${drillDownData.companyDetails.name}`}
+              subtitle="Revenue breakdown by payment method for this company"
+              type="bar"
+              size="lg"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <BarChart
+                data={drillDownData.companyDetails.paymentMethodBreakdown.map(method => ({
+                  name: method.method,
+                  value: method.totalRevenue,
+                  revenue: method.totalRevenue,
+                  transactions: method.transactionCount,
+                  averageValue: method.averageValue,
+                }))}
+                title={`Payment Methods for ${drillDownData.companyDetails.name}`}
+                subtitle="Revenue breakdown by payment method for this company"
+                xAxisDataKey="name"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleBarChartClick}
+                enableDrillDown={true}
+                ariaLabel="Bar chart showing payment method breakdown for selected company"
+                ariaDescription="Interactive bar chart displaying revenue breakdown by payment method for the selected company"
+              />
+            </ChartContainer>
+
+            {/* Monthly Trends for Company */}
+            <ChartContainer
+              title={`Monthly Trends for ${drillDownData.companyDetails.name}`}
+              subtitle="Revenue performance over time for this company"
+              type="line"
+              size="lg"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <LineChart
+                data={drillDownData.companyDetails.monthlyTrends.map(trend => ({
+                  name: trend.date,
+                  value: trend.revenue,
+                  date: trend.date,
+                  revenue: trend.revenue,
+                  transactions: trend.transactions,
+                  averageValue: trend.averageValue,
+                }))}
+                title={`Monthly Trends for ${drillDownData.companyDetails.name}`}
+                subtitle="Revenue performance over time for this company"
+                xAxisDataKey="date"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleLineChartClick}
+                enableDrillDown={true}
+                ariaLabel="Line chart showing monthly revenue trends for selected company"
+                ariaDescription="Interactive line chart displaying monthly revenue trends for the selected company"
+              />
+            </ChartContainer>
+
+            {/* Recent Transactions for Company */}
+            <ChartContainer
+              title={`Recent Transactions for ${drillDownData.companyDetails.name}`}
+              subtitle="Latest transactions for this company"
+              type="table"
+              size="xl"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <DataTable
+                data={drillDownData.companyDetails.recentTransactions}
+                columns={[
+                  {
+                    key: 'created_at',
+                    title: 'Date',
+                    sortable: true,
+                    render: (value: string) => <span className="text-gray-600">{new Date(value).toLocaleDateString()}</span>,
+                  },
+                  {
+                    key: 'payment_method_description',
+                    title: 'Payment Method',
+                    sortable: true,
+                    render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
+                  },
+                  {
+                    key: 'amount',
+                    title: 'Amount',
+                    sortable: true,
+                    render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
+                  },
+                  {
+                    key: 'Total_Combined_Revenue',
+                    title: 'Revenue',
+                    sortable: true,
+                    render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
+                  },
+                  {
+                    key: 'api_transaction_status',
+                    title: 'Status',
+                    sortable: true,
+                    render: (value: string) => (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        value === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {value}
+                      </span>
+                    ),
+                  },
+                ]}
+                sortable={true}
+                searchable={true}
+                pagination={true}
+                pageSize={10}
+                ariaLabel="Recent transactions data table for selected company"
+                ariaDescription="Sortable and searchable table showing recent transactions for the selected company"
+              />
+            </ChartContainer>
+          </div>
+        )}
+
+        {drillDownState.level === 'paymentMethod' && drillDownData.paymentMethodDetails && (
+          <div className="space-y-6">
+            {/* Payment Method Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(drillDownData.paymentMethodDetails.totalRevenue)}</p>
+                    <p className="text-sm text-gray-500">{formatPercentage(drillDownData.paymentMethodDetails.revenueShare)} of total</p>
+                  </div>
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Transactions</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatNumber(drillDownData.paymentMethodDetails.transactionCount)}</p>
+                    <p className="text-sm text-gray-500">Avg: {formatCurrency(drillDownData.paymentMethodDetails.averageValue)}</p>
+                  </div>
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatPercentage(drillDownData.paymentMethodDetails.successRate)}</p>
+                    <p className="text-sm text-gray-500">Revenue Efficiency: {formatPercentage(drillDownData.paymentMethodDetails.revenueEfficiency)}</p>
+                  </div>
+                  <div className="p-2 bg-purple-100 rounded-full">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Fee Breakdown</p>
+                    <p className="text-lg font-bold text-gray-900">{formatCurrency(drillDownData.paymentMethodDetails.payeeFeeRevenue + drillDownData.paymentMethodDetails.payorFeeRevenue)}</p>
+                    <p className="text-sm text-gray-500">Payee: {formatCurrency(drillDownData.paymentMethodDetails.payeeFeeRevenue)} | Payor: {formatCurrency(drillDownData.paymentMethodDetails.payorFeeRevenue)}</p>
+                  </div>
+                  <div className="p-2 bg-orange-100 rounded-full">
+                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Breakdown for Payment Method */}
+            <ChartContainer
+              title={`Companies using ${drillDownData.paymentMethodDetails.name}`}
+              subtitle="Revenue breakdown by company for this payment method"
+              type="bar"
+              size="lg"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <BarChart
+                data={drillDownData.paymentMethodDetails.companyBreakdown.map(company => ({
+                  name: company.company,
+                  value: company.totalRevenue,
+                  revenue: company.totalRevenue,
+                  transactions: company.transactionCount,
+                  averageValue: company.averageValue,
+                }))}
+                title={`Companies using ${drillDownData.paymentMethodDetails.name}`}
+                subtitle="Revenue breakdown by company for this payment method"
+                xAxisDataKey="name"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleBarChartClick}
+                enableDrillDown={true}
+                ariaLabel="Bar chart showing company breakdown for selected payment method"
+                ariaDescription="Interactive bar chart displaying revenue breakdown by company for the selected payment method"
+              />
+            </ChartContainer>
+
+            {/* Monthly Trends for Payment Method */}
+            <ChartContainer
+              title={`Monthly Trends for ${drillDownData.paymentMethodDetails.name}`}
+              subtitle="Revenue performance over time for this payment method"
+              type="line"
+              size="lg"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <LineChart
+                data={drillDownData.paymentMethodDetails.monthlyTrends.map(trend => ({
+                  name: trend.date,
+                  value: trend.revenue,
+                  date: trend.date,
+                  revenue: trend.revenue,
+                  transactions: trend.transactions,
+                  averageValue: trend.averageValue,
+                }))}
+                title={`Monthly Trends for ${drillDownData.paymentMethodDetails.name}`}
+                subtitle="Revenue performance over time for this payment method"
+                xAxisDataKey="date"
+                yAxisDataKey="revenue"
+                showLegend={true}
+                onDataPointClick={handleLineChartClick}
+                enableDrillDown={true}
+                ariaLabel="Line chart showing monthly revenue trends for selected payment method"
+                ariaDescription="Interactive line chart displaying monthly revenue trends for the selected payment method"
+              />
+            </ChartContainer>
+
+            {/* Recent Transactions for Payment Method */}
+            <ChartContainer
+              title={`Recent Transactions for ${drillDownData.paymentMethodDetails.name}`}
+              subtitle="Latest transactions for this payment method"
+              type="table"
+              size="xl"
+              showExport={true}
+              onExport={handleExport}
+              className="bg-white rounded-lg shadow"
+            >
+              <DataTable
+                data={drillDownData.paymentMethodDetails.recentTransactions}
+                columns={[
+                  {
+                    key: 'created_at',
+                    title: 'Date',
+                    sortable: true,
+                    render: (value: string) => <span className="text-gray-600">{new Date(value).toLocaleDateString()}</span>,
+                  },
+                  {
+                    key: 'company',
+                    title: 'Company',
+                    sortable: true,
+                    render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
+                  },
+                  {
+                    key: 'amount',
+                    title: 'Amount',
+                    sortable: true,
+                    render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
+                  },
+                  {
+                    key: 'Total_Combined_Revenue',
+                    title: 'Revenue',
+                    sortable: true,
+                    render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
+                  },
+                  {
+                    key: 'api_transaction_status',
+                    title: 'Status',
+                    sortable: true,
+                    render: (value: string) => (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        value === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {value}
+                      </span>
+                    ),
+                  },
+                ]}
+                sortable={true}
+                searchable={true}
+                pagination={true}
+                pageSize={10}
+                ariaLabel="Recent transactions data table for selected payment method"
+                ariaDescription="Sortable and searchable table showing recent transactions for the selected payment method"
+              />
+            </ChartContainer>
+          </div>
+        )}
       </div>
     );
   }

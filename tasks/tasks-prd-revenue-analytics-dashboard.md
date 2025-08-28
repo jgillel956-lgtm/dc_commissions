@@ -144,7 +144,7 @@
   - [x] 5.3 Create revenue breakdown pie chart (payee vs payor fees)
   - [x] 5.4 Implement company performance table with combined revenue analysis
   - [x] 5.5 Add payment method analysis with transaction volumes
-  - [ ] 5.6 Create daily/monthly revenue trend visualizations
+  - [x] 5.6 Create daily/monthly revenue trend visualizations
   - [ ] 5.7 Implement drill-down functionality for company and payment method analysis
   - [ ] 5.8 Add export functionality for revenue analysis data
   - [ ] 5.9 Create responsive layout for KPI widgets and charts
