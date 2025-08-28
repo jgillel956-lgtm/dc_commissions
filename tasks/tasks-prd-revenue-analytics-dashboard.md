@@ -142,7 +142,7 @@
   - [x] 5.1 Create revenue analysis tab component `src/components/dashboard/RevenueAnalysisTab.tsx`
   - [x] 5.2 Implement 8 KPI widgets showing total business metrics
   - [x] 5.3 Create revenue breakdown pie chart (payee vs payor fees)
-  - [ ] 5.4 Implement company performance table with combined revenue analysis
+  - [x] 5.4 Implement company performance table with combined revenue analysis
   - [ ] 5.5 Add payment method analysis with transaction volumes
   - [ ] 5.6 Create daily/monthly revenue trend visualizations
   - [ ] 5.7 Implement drill-down functionality for company and payment method analysis
