@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Button from '../ui/Button';
 import AuditLogViewer from '../audit/AuditLogViewer';
 import ConnectionStatus from './ConnectionStatus';
+import ThemeToggle from '../ui/ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -33,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 px-8 py-6 shadow-sm">
+    <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-6 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Logo and Title */}
         <div className="flex items-center space-x-4">
@@ -41,9 +42,9 @@ const Header: React.FC<HeaderProps> = ({
             <BarChart3 className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Analytics Manager</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics Manager</h1>
             {currentTable && (
-              <p className="text-sm text-slate-600">Managing {currentTable}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Managing {currentTable}</p>
             )}
           </div>
         </div>
@@ -93,6 +94,9 @@ const Header: React.FC<HeaderProps> = ({
           
           {/* Connection Status */}
           <ConnectionStatus />
+          
+          {/* Theme Toggle */}
+          <ThemeToggle size="sm" />
           
           {/* Notifications */}
           <button 

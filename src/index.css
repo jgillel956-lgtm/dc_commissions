@@ -10,6 +10,54 @@
   body {
     @apply bg-slate-50 text-slate-900;
   }
+  
+  /* Dark mode support */
+  body.theme-dark {
+    @apply bg-slate-900 text-slate-50;
+  }
+  
+  /* CSS custom properties for theme colors */
+  :root {
+    --color-primary: #3B82F6;
+    --color-secondary: #10B981;
+    --color-accent: #F59E0B;
+    --color-success: #10B981;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-info: #06B6D4;
+    --color-light: #F3F4F6;
+    --color-dark: #1F2937;
+    --color-neutral: #6B7280;
+    --color-background: #F8FAFC;
+    --color-surface: #FFFFFF;
+    --color-surfaceHover: #F1F5F9;
+    --color-textPrimary: #0F172A;
+    --color-textSecondary: #475569;
+    --color-textMuted: #64748B;
+    --color-border: #E2E8F0;
+    --color-borderHover: #CBD5E1;
+  }
+  
+  body.theme-dark {
+    --color-primary: #60A5FA;
+    --color-secondary: #34D399;
+    --color-accent: #FBBF24;
+    --color-success: #34D399;
+    --color-warning: #FBBF24;
+    --color-danger: #F87171;
+    --color-info: #22D3EE;
+    --color-light: #374151;
+    --color-dark: #F9FAFB;
+    --color-neutral: #9CA3AF;
+    --color-background: #0F172A;
+    --color-surface: #1E293B;
+    --color-surfaceHover: #334155;
+    --color-textPrimary: #F8FAFC;
+    --color-textSecondary: #CBD5E1;
+    --color-textMuted: #94A3B8;
+    --color-border: #334155;
+    --color-borderHover: #475569;
+  }
 }
 
 @layer components {

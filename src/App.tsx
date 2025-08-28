@@ -6,9 +6,17 @@ import TableView from './pages/TableView';
 import Login from './pages/Login';
 import AdminPanel from './pages/AdminPanel';
 import OAuthSetup from './pages/OAuthSetup';
+import ResponsiveChartDemo from './components/demo/ResponsiveChartDemo';
+import ResponsiveChartTest from './components/demo/ResponsiveChartTest';
+import DrillDownDemo from './components/demo/DrillDownDemo';
+import DashboardDemo from './components/demo/DashboardDemo';
+import ChartExportDemo from './components/demo/ChartExportDemo';
+import FilterPanelDemo from './components/demo/FilterPanelDemo';
+import FilterStateDemo from './components/demo/FilterStateDemo';
 import { UserProvider } from './contexts/UserContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Lazy load React Query Devtools
@@ -42,13 +50,25 @@ function App() {
 
   return (
     <Router>
-      <ToastProvider>
-        <AuthProvider>
-          <UserProvider>
-            <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <UserProvider>
+              <QueryClientProvider client={queryClient}>
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/oauth-setup" element={<OAuthSetup />} />
+                
+                {/* Public demo routes - no authentication required */}
+                <Route path="/demo" element={<DashboardDemo />} />
+                <Route path="/demo/dashboard" element={<DashboardDemo />} />
+                <Route path="/demo/drill-down" element={<DrillDownDemo />} />
+                <Route path="/demo/responsive" element={<ResponsiveChartDemo />} />
+                <Route path="/demo/responsive-test" element={<ResponsiveChartTest />} />
+                <Route path="/demo/export" element={<ChartExportDemo />} />
+                <Route path="/demo/filters" element={<FilterPanelDemo />} />
+                <Route path="/demo/filter-state" element={<FilterStateDemo />} />
+                
                 <Route
                   path="/"
                   element={
@@ -67,7 +87,31 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route
+                  path="/responsive-demo"
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveChartDemo />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/responsive-test"
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveChartTest />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/drill-down-demo"
+                  element={
+                    <ProtectedRoute>
+                      <DrillDownDemo />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/demo" replace />} />
               </Routes>
               {/* Temporarily disabled to fix chunk loading issue */}
               {false && process.env.NODE_ENV === 'development' && (
@@ -79,6 +123,7 @@ function App() {
           </UserProvider>
         </AuthProvider>
       </ToastProvider>
+      </ThemeProvider>
     </Router>
   );
 }
