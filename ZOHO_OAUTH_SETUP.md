@@ -103,3 +103,10 @@ After updating the tokens:
 2. Check the application logs for any remaining errors
 3. Verify that data is being fetched correctly from Zoho Analytics
 
+ For Future Updates:
+When we make changes, we should always test on the main production URL:
+Main URL: https://dc-commissions.vercel.app/
+OAuth Generator: https://dc-commissions.vercel.app/oauth-generator.html
+API Endpoints: https://dc-commissions.vercel.app/api/zoho-analytics.mjs
+The main production URL is the one that should be used for all testing and updates. The deployment URLs that Vercel creates are temporary and should not be used for production.
+All our testing and updates should be done on https://dc-commissions.vercel.app/ - which is exactly what you wanted to confirm!
