@@ -130,6 +130,19 @@ interface DrillDownData {
   };
 }
 
+// Export data interface
+interface ExportData {
+  kpis: RevenueKPIs;
+  revenueBreakdown: RevenueBreakdown;
+  companyPerformance: CompanyPerformance[];
+  paymentMethodAnalysis: PaymentMethodAnalysis[];
+  revenueTrends: RevenueTrendAnalysis;
+  drillDownData?: DrillDownData;
+  drillDownState: DrillDownState;
+  exportDate: string;
+  exportType: 'overview' | 'company' | 'paymentMethod' | 'trends';
+}
+
 const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' }) => {
   const dashboardState = useDashboardState();
   const { fetchData, fetchChartData } = useRevenueData();
@@ -812,11 +825,440 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
     }
   }, [dashboardState.data]);
 
-  // Handle export functionality
-  const handleExport = useCallback((format: 'png' | 'pdf' | 'csv' | 'json') => {
-    console.log('Exporting revenue analysis:', format);
-    // Implement export functionality
-  }, []);
+  // Enhanced export functionality
+  const handleExport = useCallback(async (format: 'png' | 'pdf' | 'csv' | 'json') => {
+    try {
+      const exportData: ExportData = {
+        kpis,
+        revenueBreakdown,
+        companyPerformance,
+        paymentMethodAnalysis,
+        revenueTrends,
+        drillDownData: drillDownState.level !== 'overview' ? drillDownData : undefined,
+        drillDownState,
+        exportDate: new Date().toISOString(),
+        exportType: drillDownState.level === 'overview' ? 'overview' : 
+                   drillDownState.level === 'company' ? 'company' : 
+                   drillDownState.level === 'paymentMethod' ? 'paymentMethod' : 'trends',
+      };
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const level = drillDownState.level === 'overview' ? 'overview' : 
+                   drillDownState.level === 'company' ? `company-${drillDownState.selectedCompany}` : 
+                   drillDownState.level === 'paymentMethod' ? `payment-method-${drillDownState.selectedPaymentMethod}` : 'trends';
+      
+      const filename = `revenue-analysis-${level}-${timestamp}`;
+
+      switch (format) {
+        case 'json':
+          await exportToJSON(exportData, filename);
+          break;
+        case 'csv':
+          await exportToCSV(exportData, filename);
+          break;
+        case 'png':
+          await exportToPNG(exportData, filename);
+          break;
+        case 'pdf':
+          await exportToPDF(exportData, filename);
+          break;
+        default:
+          console.warn('Unsupported export format:', format);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      // Could show a toast notification here
+    }
+  }, [kpis, revenueBreakdown, companyPerformance, paymentMethodAnalysis, revenueTrends, drillDownData, drillDownState]);
+
+  // Export to JSON
+  const exportToJSON = async (data: ExportData, filename: string) => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export to CSV
+  const exportToCSV = async (data: ExportData, filename: string) => {
+    const csvData: string[] = [];
+    
+    // Add header
+    csvData.push('Revenue Analysis Export');
+    csvData.push(`Generated: ${new Date(data.exportDate).toLocaleString()}`);
+    csvData.push(`Export Type: ${data.exportType}`);
+    csvData.push('');
+
+    // KPI Summary
+    csvData.push('KPI Summary');
+    csvData.push('Metric,Value,Format');
+    csvData.push(`Total Revenue,${data.kpis.totalRevenue},currency`);
+    csvData.push(`Total Transactions,${data.kpis.totalTransactions},number`);
+    csvData.push(`Average Transaction Value,${data.kpis.averageTransactionValue},currency`);
+    csvData.push(`Payee Fee Revenue,${data.kpis.payeeFeeRevenue},currency`);
+    csvData.push(`Payor Fee Revenue,${data.kpis.payorFeeRevenue},currency`);
+    csvData.push(`Revenue Per Transaction,${data.kpis.revenuePerTransaction},currency`);
+    csvData.push(`Total Combined Revenue,${data.kpis.totalCombinedRevenue},currency`);
+    csvData.push(`Revenue Growth Rate,${data.kpis.revenueGrowthRate},percentage`);
+    csvData.push('');
+
+    // Revenue Breakdown
+    csvData.push('Revenue Breakdown');
+    csvData.push('Type,Amount,Percentage');
+    csvData.push(`Payee Fees,${data.revenueBreakdown.payeeFees},${((data.revenueBreakdown.payeeFees / data.revenueBreakdown.total) * 100).toFixed(2)}%`);
+    csvData.push(`Payor Fees,${data.revenueBreakdown.payorFees},${((data.revenueBreakdown.payorFees / data.revenueBreakdown.total) * 100).toFixed(2)}%`);
+    csvData.push(`Total,${data.revenueBreakdown.total},100%`);
+    csvData.push('');
+
+    // Company Performance
+    csvData.push('Company Performance');
+    csvData.push('Company,Total Revenue,Transactions,Average Value,Revenue Share');
+    data.companyPerformance.forEach(company => {
+      csvData.push(`${company.company},${company.totalRevenue},${company.transactionCount},${company.averageValue},${company.revenueShare.toFixed(2)}%`);
+    });
+    csvData.push('');
+
+    // Payment Method Analysis
+    csvData.push('Payment Method Analysis');
+    csvData.push('Method,Total Revenue,Transactions,Average Value,Revenue Share');
+    data.paymentMethodAnalysis.forEach(method => {
+      csvData.push(`${method.method},${method.totalRevenue},${method.transactionCount},${method.averageValue},${method.revenueShare.toFixed(2)}%`);
+    });
+    csvData.push('');
+
+    // Revenue Trends Summary
+    csvData.push('Revenue Trends Summary');
+    csvData.push('Metric,Value');
+    csvData.push(`Total Revenue,${data.revenueTrends.summary.totalRevenue}`);
+    csvData.push(`Total Transactions,${data.revenueTrends.summary.totalTransactions}`);
+    csvData.push(`Average Daily Revenue,${data.revenueTrends.summary.averageDailyRevenue}`);
+    csvData.push(`Average Monthly Revenue,${data.revenueTrends.summary.averageMonthlyRevenue}`);
+    csvData.push(`Revenue Growth Rate,${data.revenueTrends.summary.revenueGrowthRate.toFixed(2)}%`);
+    csvData.push(`Transaction Growth Rate,${data.revenueTrends.summary.transactionGrowthRate.toFixed(2)}%`);
+    csvData.push(`Best Day,${data.revenueTrends.summary.bestDay}`);
+    csvData.push(`Worst Day,${data.revenueTrends.summary.worstDay}`);
+    csvData.push(`Best Month,${data.revenueTrends.summary.bestMonth}`);
+    csvData.push(`Worst Month,${data.revenueTrends.summary.worstMonth}`);
+    csvData.push(`Trend Direction,${data.revenueTrends.summary.trendDirection}`);
+    csvData.push(`Seasonal Pattern,${data.revenueTrends.summary.seasonalPattern}`);
+    csvData.push('');
+
+    // Daily Trends
+    csvData.push('Daily Revenue Trends (Last 30 days)');
+    csvData.push('Date,Revenue,Transactions,Average Value,Revenue Growth,Transaction Growth,Moving Average,Cumulative Revenue,Success Rate');
+    data.revenueTrends.daily.slice(-30).forEach(trend => {
+      csvData.push(`${trend.date},${trend.revenue},${trend.transactions},${trend.averageValue},${trend.revenueGrowth.toFixed(2)}%,${trend.transactionGrowth.toFixed(2)}%,${trend.movingAverage},${trend.cumulativeRevenue},${trend.successRate.toFixed(2)}%`);
+    });
+    csvData.push('');
+
+    // Monthly Trends
+    csvData.push('Monthly Revenue Trends');
+    csvData.push('Month,Revenue,Transactions,Average Value,Revenue Growth,Transaction Growth,Cumulative Revenue,Success Rate');
+    data.revenueTrends.monthly.forEach(trend => {
+      csvData.push(`${trend.date},${trend.revenue},${trend.transactions},${trend.averageValue},${trend.revenueGrowth.toFixed(2)}%,${trend.transactionGrowth.toFixed(2)}%,${trend.cumulativeRevenue},${trend.successRate.toFixed(2)}%`);
+    });
+    csvData.push('');
+
+    // Drill-down data if available
+    if (data.drillDownData) {
+      if (data.drillDownData.companyDetails) {
+        csvData.push(`Company Details: ${data.drillDownData.companyDetails.name}`);
+        csvData.push('Metric,Value');
+        csvData.push(`Total Revenue,${data.drillDownData.companyDetails.totalRevenue}`);
+        csvData.push(`Transaction Count,${data.drillDownData.companyDetails.transactionCount}`);
+        csvData.push(`Average Value,${data.drillDownData.companyDetails.averageValue}`);
+        csvData.push(`Revenue Share,${data.drillDownData.companyDetails.revenueShare.toFixed(2)}%`);
+        csvData.push(`Payee Fee Revenue,${data.drillDownData.companyDetails.payeeFeeRevenue}`);
+        csvData.push(`Payor Fee Revenue,${data.drillDownData.companyDetails.payorFeeRevenue}`);
+        csvData.push(`Additional Charges,${data.drillDownData.companyDetails.additionalCharges}`);
+        csvData.push(`Revenue Efficiency,${data.drillDownData.companyDetails.revenueEfficiency.toFixed(2)}%`);
+        csvData.push(`Success Rate,${data.drillDownData.companyDetails.successRate.toFixed(2)}%`);
+        csvData.push('');
+
+        csvData.push('Payment Method Breakdown');
+        csvData.push('Method,Revenue,Transactions,Average Value,Revenue Share');
+        data.drillDownData.companyDetails.paymentMethodBreakdown.forEach(method => {
+          csvData.push(`${method.method},${method.totalRevenue},${method.transactionCount},${method.averageValue},${method.revenueShare.toFixed(2)}%`);
+        });
+        csvData.push('');
+      }
+
+      if (data.drillDownData.paymentMethodDetails) {
+        csvData.push(`Payment Method Details: ${data.drillDownData.paymentMethodDetails.name}`);
+        csvData.push('Metric,Value');
+        csvData.push(`Total Revenue,${data.drillDownData.paymentMethodDetails.totalRevenue}`);
+        csvData.push(`Transaction Count,${data.drillDownData.paymentMethodDetails.transactionCount}`);
+        csvData.push(`Average Value,${data.drillDownData.paymentMethodDetails.averageValue}`);
+        csvData.push(`Revenue Share,${data.drillDownData.paymentMethodDetails.revenueShare.toFixed(2)}%`);
+        csvData.push(`Payee Fee Revenue,${data.drillDownData.paymentMethodDetails.payeeFeeRevenue}`);
+        csvData.push(`Payor Fee Revenue,${data.drillDownData.paymentMethodDetails.payorFeeRevenue}`);
+        csvData.push(`Additional Charges,${data.drillDownData.paymentMethodDetails.additionalCharges}`);
+        csvData.push(`Revenue Efficiency,${data.drillDownData.paymentMethodDetails.revenueEfficiency.toFixed(2)}%`);
+        csvData.push(`Success Rate,${data.drillDownData.paymentMethodDetails.successRate.toFixed(2)}%`);
+        csvData.push('');
+
+        csvData.push('Company Breakdown');
+        csvData.push('Company,Revenue,Transactions,Average Value,Revenue Share');
+        data.drillDownData.paymentMethodDetails.companyBreakdown.forEach(company => {
+          csvData.push(`${company.company},${company.totalRevenue},${company.transactionCount},${company.averageValue},${company.revenueShare.toFixed(2)}%`);
+        });
+        csvData.push('');
+      }
+    }
+
+    const csvString = csvData.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export to PNG (simplified - would need chart library integration)
+  const exportToPNG = async (data: ExportData, filename: string) => {
+    // This would typically involve using a chart library's export functionality
+    // For now, we'll create a simple canvas with summary data
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = 1200;
+    canvas.height = 800;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw title
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Revenue Analysis Report', canvas.width / 2, 40);
+
+    // Draw subtitle
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(`Generated: ${new Date(data.exportDate).toLocaleString()}`, canvas.width / 2, 70);
+    ctx.fillText(`Export Type: ${data.exportType}`, canvas.width / 2, 95);
+
+    // Draw KPI summary
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#1f2937';
+    ctx.fillText('KPI Summary', 50, 140);
+
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#374151';
+    let y = 170;
+    ctx.fillText(`Total Revenue: ${formatCurrency(data.kpis.totalRevenue)}`, 50, y);
+    y += 25;
+    ctx.fillText(`Total Transactions: ${formatNumber(data.kpis.totalTransactions)}`, 50, y);
+    y += 25;
+    ctx.fillText(`Average Transaction Value: ${formatCurrency(data.kpis.averageTransactionValue)}`, 50, y);
+    y += 25;
+    ctx.fillText(`Revenue Growth Rate: ${formatPercentage(data.kpis.revenueGrowthRate)}`, 50, y);
+
+    // Draw revenue breakdown
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Revenue Breakdown', 50, 300);
+
+    ctx.font = '14px Arial';
+    y = 330;
+    ctx.fillText(`Payee Fees: ${formatCurrency(data.revenueBreakdown.payeeFees)}`, 50, y);
+    y += 25;
+    ctx.fillText(`Payor Fees: ${formatCurrency(data.revenueBreakdown.payorFees)}`, 50, y);
+    y += 25;
+    ctx.fillText(`Total: ${formatCurrency(data.revenueBreakdown.total)}`, 50, y);
+
+    // Draw top companies
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Top Companies', 50, 420);
+
+    ctx.font = '14px Arial';
+    y = 450;
+    data.companyPerformance.slice(0, 5).forEach((company, index) => {
+      ctx.fillText(`${index + 1}. ${company.company}: ${formatCurrency(company.totalRevenue)}`, 50, y);
+      y += 20;
+    });
+
+    // Draw top payment methods
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Top Payment Methods', 50, 580);
+
+    ctx.font = '14px Arial';
+    y = 610;
+    data.paymentMethodAnalysis.slice(0, 5).forEach((method, index) => {
+      ctx.fillText(`${index + 1}. ${method.method}: ${formatCurrency(method.totalRevenue)}`, 50, y);
+      y += 20;
+    });
+
+    // Convert canvas to blob and download
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    });
+  };
+
+  // Export to PDF (simplified - would need PDF library integration)
+  const exportToPDF = async (data: ExportData, filename: string) => {
+    // This would typically involve using a PDF library like jsPDF
+    // For now, we'll create a simple HTML representation and convert it
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Revenue Analysis Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .section { margin-bottom: 20px; }
+            .section h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+            .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+            .kpi-item { background: #f9fafb; padding: 15px; border-radius: 8px; }
+            .kpi-label { font-weight: bold; color: #374151; }
+            .kpi-value { font-size: 18px; color: #1f2937; margin-top: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+            th { background: #f3f4f6; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Revenue Analysis Report</h1>
+            <p>Generated: ${new Date(data.exportDate).toLocaleString()}</p>
+            <p>Export Type: ${data.exportType}</p>
+          </div>
+
+          <div class="section">
+            <h2>KPI Summary</h2>
+            <div class="kpi-grid">
+              <div class="kpi-item">
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-value">${formatCurrency(data.kpis.totalRevenue)}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Total Transactions</div>
+                <div class="kpi-value">${formatNumber(data.kpis.totalTransactions)}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Average Transaction Value</div>
+                <div class="kpi-value">${formatCurrency(data.kpis.averageTransactionValue)}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Revenue Growth Rate</div>
+                <div class="kpi-value">${formatPercentage(data.kpis.revenueGrowthRate)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Revenue Breakdown</h2>
+            <table>
+              <tr><th>Type</th><th>Amount</th><th>Percentage</th></tr>
+              <tr><td>Payee Fees</td><td>${formatCurrency(data.revenueBreakdown.payeeFees)}</td><td>${((data.revenueBreakdown.payeeFees / data.revenueBreakdown.total) * 100).toFixed(2)}%</td></tr>
+              <tr><td>Payor Fees</td><td>${formatCurrency(data.revenueBreakdown.payorFees)}</td><td>${((data.revenueBreakdown.payorFees / data.revenueBreakdown.total) * 100).toFixed(2)}%</td></tr>
+              <tr><td>Total</td><td>${formatCurrency(data.revenueBreakdown.total)}</td><td>100%</td></tr>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Top Companies</h2>
+            <table>
+              <tr><th>Company</th><th>Revenue</th><th>Transactions</th><th>Revenue Share</th></tr>
+              ${data.companyPerformance.slice(0, 10).map(company => 
+                `<tr><td>${company.company}</td><td>${formatCurrency(company.totalRevenue)}</td><td>${company.transactionCount}</td><td>${company.revenueShare.toFixed(2)}%</td></tr>`
+              ).join('')}
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Payment Method Analysis</h2>
+            <table>
+              <tr><th>Method</th><th>Revenue</th><th>Transactions</th><th>Revenue Share</th></tr>
+              ${data.paymentMethodAnalysis.slice(0, 10).map(method => 
+                `<tr><td>${method.method}</td><td>${formatCurrency(method.totalRevenue)}</td><td>${method.transactionCount}</td><td>${method.revenueShare.toFixed(2)}%</td></tr>`
+              ).join('')}
+            </table>
+          </div>
+
+          <div class="section">
+            <h2>Revenue Trends Summary</h2>
+            <div class="kpi-grid">
+              <div class="kpi-item">
+                <div class="kpi-label">Average Daily Revenue</div>
+                <div class="kpi-value">${formatCurrency(data.revenueTrends.summary.averageDailyRevenue)}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Revenue Growth Rate</div>
+                <div class="kpi-value">${formatPercentage(data.revenueTrends.summary.revenueGrowthRate)}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Trend Direction</div>
+                <div class="kpi-value">${data.revenueTrends.summary.trendDirection}</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-label">Best Performing Day</div>
+                <div class="kpi-value">${data.revenueTrends.summary.bestDay || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // For now, we'll create a simple text-based PDF representation
+    // In a real implementation, you would use a library like jsPDF
+    const textContent = `
+Revenue Analysis Report
+Generated: ${new Date(data.exportDate).toLocaleString()}
+Export Type: ${data.exportType}
+
+KPI Summary:
+- Total Revenue: ${formatCurrency(data.kpis.totalRevenue)}
+- Total Transactions: ${formatNumber(data.kpis.totalTransactions)}
+- Average Transaction Value: ${formatCurrency(data.kpis.averageTransactionValue)}
+- Revenue Growth Rate: ${formatPercentage(data.kpis.revenueGrowthRate)}
+
+Revenue Breakdown:
+- Payee Fees: ${formatCurrency(data.revenueBreakdown.payeeFees)}
+- Payor Fees: ${formatCurrency(data.revenueBreakdown.payorFees)}
+- Total: ${formatCurrency(data.revenueBreakdown.total)}
+
+Top Companies:
+${data.companyPerformance.slice(0, 5).map((company, index) => 
+  `${index + 1}. ${company.company}: ${formatCurrency(company.totalRevenue)}`
+).join('\n')}
+
+Payment Method Analysis:
+${data.paymentMethodAnalysis.slice(0, 5).map((method, index) => 
+  `${index + 1}. ${method.method}: ${formatCurrency(method.totalRevenue)}`
+).join('\n')}
+    `;
+
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   if (dashboardState.loading) {
     return (
