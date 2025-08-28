@@ -70,6 +70,31 @@ const EXPORT_HISTORY_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 /** Export progress tracking */
 const exportProgress = new Map();
 
+/** Export error tracking */
+const exportErrors = new Map();
+
+/** Export status types */
+const EXPORT_STATUS = {
+  PREPARING: 'preparing',
+  FETCHING: 'fetching',
+  PROCESSING: 'processing',
+  WRITING: 'writing',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled'
+};
+
+/** Export error types */
+const EXPORT_ERROR_TYPES = {
+  VALIDATION_ERROR: 'validation_error',
+  AUTHENTICATION_ERROR: 'authentication_error',
+  DATA_FETCH_ERROR: 'data_fetch_error',
+  PROCESSING_ERROR: 'processing_error',
+  FILE_WRITE_ERROR: 'file_write_error',
+  TIMEOUT_ERROR: 'timeout_error',
+  UNKNOWN_ERROR: 'unknown_error'
+};
+
 /** Export service class */
 class DashboardExportService {
   constructor() {
@@ -1213,32 +1238,50 @@ class DashboardExportService {
     const fileName = this.generateFileName(format, template, filters, user);
     const filePath = path.join(EXPORT_CONFIG.STORAGE.tempDir, fileName);
     
-    // Initialize progress tracking
-    exportProgress.set(exportId, {
-      status: 'preparing',
+    // Initialize progress tracking with detailed status
+    const initialProgress = {
+      status: EXPORT_STATUS.PREPARING,
       progress: 0,
-      message: 'Preparing export...'
-    });
+      message: 'Preparing export...',
+      startTime: new Date().toISOString(),
+      estimatedTime: null,
+      currentStep: 'initialization',
+      totalSteps: 5,
+      currentStepNumber: 1
+    };
+    
+    exportProgress.set(exportId, initialProgress);
     
     try {
-      // Validate request
-      await this.validateExportRequest(format, template, filters, user);
-      
-      // Update progress
-      exportProgress.set(exportId, {
-        status: 'fetching',
-        progress: 20,
-        message: 'Fetching dashboard data...'
+      // Step 1: Validation
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.PREPARING,
+        progress: 10,
+        message: 'Validating export request...',
+        currentStep: 'validation',
+        currentStepNumber: 1
       });
       
-      // Fetch data
+      await this.validateExportRequest(format, template, filters, user);
+      
+      // Step 2: Data Fetching
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.FETCHING,
+        progress: 25,
+        message: 'Fetching dashboard data...',
+        currentStep: 'data_fetching',
+        currentStepNumber: 2
+      });
+      
       const data = await this.fetchDashboardData(filters, user);
       
-      // Update progress
-      exportProgress.set(exportId, {
-        status: 'processing',
-        progress: 60,
-        message: 'Processing data for export...'
+      // Step 3: Data Processing
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.PROCESSING,
+        progress: 50,
+        message: `Processing ${data.length.toLocaleString()} records for export...`,
+        currentStep: 'data_processing',
+        currentStepNumber: 3
       });
       
       // Prepare metadata
@@ -1249,6 +1292,15 @@ class DashboardExportService {
         user: { id: user.id, username: user.username },
         recordCount: data.length
       };
+      
+      // Step 4: Format Generation
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.PROCESSING,
+        progress: 75,
+        message: `Generating ${format.toUpperCase()} export...`,
+        currentStep: 'format_generation',
+        currentStepNumber: 4
+      });
       
       // Generate export content based on format
       let content;
@@ -1269,27 +1321,41 @@ class DashboardExportService {
           throw new Error(`Unsupported format: ${format}`);
       }
       
-      // Update progress
-      exportProgress.set(exportId, {
-        status: 'writing',
-        progress: 80,
-        message: 'Writing export file...'
+      // Step 5: File Writing
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.WRITING,
+        progress: 90,
+        message: 'Writing export file...',
+        currentStep: 'file_writing',
+        currentStepNumber: 5
       });
       
-             // Write file
-       if (format === 'pdf' || format === 'excel') {
-         // For PDF and Excel, content is a buffer
-         fs.writeFileSync(filePath, Buffer.from(content));
-       } else {
-         // For other formats, content is a string
-         fs.writeFileSync(filePath, content);
-       }
+      // Write file with error handling
+      try {
+        if (format === 'pdf' || format === 'excel') {
+          // For PDF and Excel, content is a buffer
+          fs.writeFileSync(filePath, Buffer.from(content));
+        } else {
+          // For other formats, content is a string
+          fs.writeFileSync(filePath, content);
+        }
+      } catch (writeError) {
+        throw this.createExportError(EXPORT_ERROR_TYPES.FILE_WRITE_ERROR, 
+          'Failed to write export file', writeError);
+      }
       
-      // Update progress
-      exportProgress.set(exportId, {
-        status: 'completed',
+      // Calculate file size and finalize
+      const fileSize = fs.statSync(filePath).size;
+      
+      // Update progress to completed
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.COMPLETED,
         progress: 100,
-        message: 'Export completed successfully'
+        message: `Export completed successfully! File size: ${this.formatFileSize(fileSize)}`,
+        currentStep: 'completed',
+        currentStepNumber: 5,
+        completionTime: new Date().toISOString(),
+        fileSize: fileSize
       });
       
       // Record export history
@@ -1303,29 +1369,240 @@ class DashboardExportService {
         userId: user.id,
         username: user.username,
         recordCount: data.length,
-        fileSize: fs.statSync(filePath).size,
+        fileSize: fileSize,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + EXPORT_CONFIG.STORAGE.retentionDays * 24 * 60 * 60 * 1000).toISOString()
       };
       
       exportHistory.set(exportId, exportRecord);
       
+      // Clear any previous errors for this export
+      exportErrors.delete(exportId);
+      
       return exportRecord;
       
     } catch (error) {
-      // Update progress with error
-      exportProgress.set(exportId, {
-        status: 'error',
+      // Handle and record the error
+      const exportError = this.handleExportError(exportId, error);
+      
+      // Update progress with error status
+      await this.updateProgress(exportId, {
+        status: EXPORT_STATUS.FAILED,
         progress: 0,
-        message: error.message
+        message: `Export failed: ${exportError.message}`,
+        currentStep: 'error',
+        currentStepNumber: 0,
+        error: exportError
       });
       
-      throw error;
+      throw exportError;
+    }
+  }
+  
+  async updateProgress(exportId, progressData) {
+    const currentProgress = exportProgress.get(exportId) || {};
+    const updatedProgress = {
+      ...currentProgress,
+      ...progressData,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Calculate estimated time if we have progress data
+    if (updatedProgress.progress > 0 && updatedProgress.startTime) {
+      const elapsed = Date.now() - new Date(updatedProgress.startTime).getTime();
+      const estimatedTotal = (elapsed / updatedProgress.progress) * 100;
+      const remaining = estimatedTotal - elapsed;
+      
+      updatedProgress.estimatedTime = remaining > 0 ? remaining : 0;
+    }
+    
+    exportProgress.set(exportId, updatedProgress);
+    
+    // Emit progress event if we have event emitter
+    if (this.eventEmitter) {
+      this.eventEmitter.emit('exportProgress', exportId, updatedProgress);
     }
   }
   
   getExportProgress(exportId) {
     return exportProgress.get(exportId) || null;
+  }
+  
+  getExportError(exportId) {
+    return exportErrors.get(exportId) || null;
+  }
+  
+  createExportError(type, message, originalError = null) {
+    const error = {
+      type: type,
+      message: message,
+      timestamp: new Date().toISOString(),
+      originalError: originalError ? {
+        message: originalError.message,
+        stack: originalError.stack,
+        name: originalError.name
+      } : null,
+      errorCode: this.getErrorCode(type),
+      retryable: this.isRetryableError(type)
+    };
+    
+    return error;
+  }
+  
+  handleExportError(exportId, error) {
+    let exportError;
+    
+    // Determine error type based on error message and properties
+    if (error.message.includes('token') || error.message.includes('authentication')) {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.AUTHENTICATION_ERROR, 
+        'Authentication failed. Please log in again.', error);
+    } else if (error.message.includes('validation') || error.message.includes('required')) {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.VALIDATION_ERROR, 
+        'Invalid export request. Please check your parameters.', error);
+    } else if (error.message.includes('fetch') || error.message.includes('data')) {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.DATA_FETCH_ERROR, 
+        'Failed to fetch data from the database. Please try again.', error);
+    } else if (error.message.includes('write') || error.message.includes('file')) {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.FILE_WRITE_ERROR, 
+        'Failed to write export file. Please check disk space and permissions.', error);
+    } else if (error.message.includes('timeout')) {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.TIMEOUT_ERROR, 
+        'Export operation timed out. Please try with a smaller dataset.', error);
+    } else {
+      exportError = this.createExportError(EXPORT_ERROR_TYPES.UNKNOWN_ERROR, 
+        'An unexpected error occurred during export.', error);
+    }
+    
+    // Store the error
+    exportErrors.set(exportId, exportError);
+    
+    return exportError;
+  }
+  
+  getErrorCode(errorType) {
+    const errorCodes = {
+      [EXPORT_ERROR_TYPES.VALIDATION_ERROR]: 'EXPORT_001',
+      [EXPORT_ERROR_TYPES.AUTHENTICATION_ERROR]: 'EXPORT_002',
+      [EXPORT_ERROR_TYPES.DATA_FETCH_ERROR]: 'EXPORT_003',
+      [EXPORT_ERROR_TYPES.PROCESSING_ERROR]: 'EXPORT_004',
+      [EXPORT_ERROR_TYPES.FILE_WRITE_ERROR]: 'EXPORT_005',
+      [EXPORT_ERROR_TYPES.TIMEOUT_ERROR]: 'EXPORT_006',
+      [EXPORT_ERROR_TYPES.UNKNOWN_ERROR]: 'EXPORT_999'
+    };
+    
+    return errorCodes[errorType] || 'EXPORT_999';
+  }
+  
+  isRetryableError(errorType) {
+    const retryableErrors = [
+      EXPORT_ERROR_TYPES.DATA_FETCH_ERROR,
+      EXPORT_ERROR_TYPES.PROCESSING_ERROR,
+      EXPORT_ERROR_TYPES.TIMEOUT_ERROR
+    ];
+    
+    return retryableErrors.includes(errorType);
+  }
+  
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+  
+  async cancelExport(exportId, user) {
+    const progress = exportProgress.get(exportId);
+    
+    if (!progress) {
+      throw new Error('Export not found');
+    }
+    
+    // Check if user owns this export
+    const exportRecord = exportHistory.get(exportId);
+    if (exportRecord && exportRecord.userId !== user.id) {
+      throw new Error('Access denied');
+    }
+    
+    // Update progress to cancelled
+    await this.updateProgress(exportId, {
+      status: EXPORT_STATUS.CANCELLED,
+      progress: 0,
+      message: 'Export cancelled by user',
+      currentStep: 'cancelled',
+      currentStepNumber: 0,
+      completionTime: new Date().toISOString()
+    });
+    
+    // Clean up any partial files
+    if (exportRecord && exportRecord.filePath) {
+      try {
+        if (fs.existsSync(exportRecord.filePath)) {
+          fs.unlinkSync(exportRecord.filePath);
+        }
+      } catch (error) {
+        console.error('Error cleaning up cancelled export file:', error);
+      }
+    }
+    
+    return { message: 'Export cancelled successfully' };
+  }
+  
+  async retryExport(exportId, user) {
+    const error = exportErrors.get(exportId);
+    
+    if (!error) {
+      throw new Error('No error found for this export');
+    }
+    
+    if (!this.isRetryableError(error.type)) {
+      throw new Error('This type of error cannot be retried');
+    }
+    
+    // Get the original export record
+    const exportRecord = exportHistory.get(exportId);
+    if (!exportRecord) {
+      throw new Error('Export record not found');
+    }
+    
+    // Check if user owns this export
+    if (exportRecord.userId !== user.id) {
+      throw new Error('Access denied');
+    }
+    
+    // Create a new export with the same parameters
+    const newExportId = this.generateExportId();
+    
+    // Copy progress tracking to new export
+    const originalProgress = exportProgress.get(exportId);
+    if (originalProgress) {
+      exportProgress.set(newExportId, {
+        ...originalProgress,
+        id: newExportId,
+        status: EXPORT_STATUS.PREPARING,
+        progress: 0,
+        message: 'Retrying export...',
+        startTime: new Date().toISOString(),
+        retryCount: (originalProgress.retryCount || 0) + 1
+      });
+    }
+    
+    // Start the retry process
+    this.createExport(
+      exportRecord.format,
+      exportRecord.template,
+      exportRecord.filters,
+      user
+    ).catch(error => {
+      console.error('Retry export failed:', error);
+    });
+    
+    return { 
+      message: 'Export retry initiated',
+      newExportId: newExportId
+    };
   }
   
   getExportHistory(userId, limit = 10) {
@@ -1424,52 +1701,90 @@ export async function exportHandler(req, res) {
         downloadUrl: `/api/dashboard-export/download/${exportRecord.id}`
       });
       
-    } else if (req.method === 'GET') {
-      // Get export progress or history
-      const { exportId, history } = req.query;
+         } else if (req.method === 'GET') {
+       // Get export progress, error, or history
+       const { exportId, history, error } = req.query;
+       
+       if (exportId) {
+         if (error) {
+           // Get export error details
+           const exportError = exportService.getExportError(exportId);
+           
+           if (!exportError) {
+             return res.status(404).json({ error: 'Export error not found' });
+           }
+           
+           return res.status(200).json({
+             success: true,
+             exportId,
+             error: exportError
+           });
+         } else {
+           // Get export progress
+           const progress = exportService.getExportProgress(exportId);
+           
+           if (!progress) {
+             return res.status(404).json({ error: 'Export not found' });
+           }
+           
+           return res.status(200).json({
+             success: true,
+             exportId,
+             progress: progress.progress,
+             status: progress.status,
+             message: progress.message,
+             currentStep: progress.currentStep,
+             currentStepNumber: progress.currentStepNumber,
+             totalSteps: progress.totalSteps,
+             startTime: progress.startTime,
+             estimatedTime: progress.estimatedTime,
+             lastUpdated: progress.lastUpdated,
+             fileSize: progress.fileSize,
+             retryCount: progress.retryCount
+           });
+         }
+         
+       } else if (history) {
+         // Get export history
+         const history = exportService.getExportHistory(user.id);
+         
+         return res.status(200).json({
+           success: true,
+           exports: history
+         });
+         
+       } else {
+         // Get available templates and formats
+         return res.status(200).json({
+           success: true,
+           formats: EXPORT_CONFIG.SUPPORTED_FORMATS,
+           templates: Object.keys(EXPORT_CONFIG.TEMPLATES),
+           limits: {
+             maxRecords: EXPORT_CONFIG.MAX_RECORDS_PER_EXPORT,
+             maxFileSize: EXPORT_CONFIG.MAX_FILE_SIZE_MB,
+             retentionDays: EXPORT_CONFIG.STORAGE.retentionDays
+           }
+         });
+       }
       
-      if (exportId) {
-        // Get export progress
-        const progress = exportService.getExportProgress(exportId);
-        
-        if (!progress) {
-          return res.status(404).json({ error: 'Export not found' });
-        }
-        
-        return res.status(200).json({
-          success: true,
-          exportId,
-          progress: progress.progress,
-          status: progress.status,
-          message: progress.message
-        });
-        
-      } else if (history) {
-        // Get export history
-        const history = exportService.getExportHistory(user.id);
-        
-        return res.status(200).json({
-          success: true,
-          exports: history
-        });
-        
-      } else {
-        // Get available templates and formats
-        return res.status(200).json({
-          success: true,
-          formats: EXPORT_CONFIG.SUPPORTED_FORMATS,
-          templates: Object.keys(EXPORT_CONFIG.TEMPLATES),
-          limits: {
-            maxRecords: EXPORT_CONFIG.MAX_RECORDS_PER_EXPORT,
-            maxFileSize: EXPORT_CONFIG.MAX_FILE_SIZE_MB,
-            retentionDays: EXPORT_CONFIG.STORAGE.retentionDays
-          }
-        });
-      }
-      
-    } else {
-      return res.status(405).json({ error: 'Method not allowed' });
-    }
+         } else if (req.method === 'DELETE') {
+       // Cancel export
+       const { exportId } = req.params;
+       
+       if (!exportId) {
+         return res.status(400).json({ error: 'Export ID is required' });
+       }
+       
+       const result = await exportService.cancelExport(exportId, user);
+       
+       return res.status(200).json({
+         success: true,
+         message: result.message
+       });
+       
+     } else {
+       return res.status(405).json({ error: 'Method not allowed' });
+     }
     
   } catch (error) {
     console.error('Export API error:', error);
@@ -1516,6 +1831,41 @@ export async function downloadHandler(req, res) {
     
   } catch (error) {
     console.error('Download error:', error);
+    
+    return res.status(error.message.includes('token') ? 401 : 500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+// Retry export handler
+export async function retryHandler(req, res) {
+  try {
+    // Authenticate user
+    const user = await authenticateToken(req);
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+    
+    const { exportId } = req.params;
+    
+    if (!exportId) {
+      return res.status(400).json({ error: 'Export ID is required' });
+    }
+    
+    const exportService = new DashboardExportService();
+    const result = await exportService.retryExport(exportId, user);
+    
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      newExportId: result.newExportId
+    });
+    
+  } catch (error) {
+    console.error('Retry export error:', error);
     
     return res.status(error.message.includes('token') ? 401 : 500).json({
       error: error.message,
