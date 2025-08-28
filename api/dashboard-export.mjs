@@ -335,14 +335,27 @@ class DashboardExportService {
   }
   
   async exportToJSON(data, metadata) {
+    const filterContext = this.createFilterMetadataSection(metadata.filters);
+    
     const exportData = {
       metadata: {
         exportDate: new Date().toISOString(),
         template: metadata.template,
-        filters: metadata.filters,
         user: metadata.user,
         recordCount: data.length,
-        format: 'json'
+        format: 'json',
+        filterContext: filterContext,
+        appliedFilters: this.buildDetailedFilterContext(metadata.filters),
+        exportConfiguration: {
+          totalActiveFilters: filterContext.totalActiveFilters,
+          filterSummary: filterContext.filterSummary,
+          dateRange: filterContext.dateRange,
+          companies: filterContext.companies,
+          paymentMethods: filterContext.paymentMethods,
+          amountRange: filterContext.amountRange,
+          revenueSources: filterContext.revenueSources,
+          commissionTypes: filterContext.commissionTypes
+        }
       },
       data: data
     };
@@ -370,14 +383,22 @@ class DashboardExportService {
       csvRows.push(values.join(','));
     }
     
-    // Add metadata as comments at the top
-    const metadataComments = [
-      `# Export Date: ${metadata.exportDate}`,
-      `# Template: ${metadata.template || 'custom'}`,
-      `# Record Count: ${data.length}`,
-      `# Filters: ${JSON.stringify(metadata.filters)}`,
-      ''
-    ];
+         // Add enhanced metadata as comments at the top
+     const filterContext = this.createFilterMetadataSection(metadata.filters);
+     const metadataComments = [
+       `# Export Date: ${metadata.exportDate}`,
+       `# Template: ${metadata.template || 'custom'}`,
+       `# Record Count: ${data.length}`,
+       `# Total Active Filters: ${filterContext.totalActiveFilters}`,
+       `# Date Range: ${filterContext.dateRange}`,
+       `# Companies: ${filterContext.companies}`,
+       `# Payment Methods: ${filterContext.paymentMethods}`,
+       `# Amount Range: ${filterContext.amountRange}`,
+       `# Revenue Sources: ${filterContext.revenueSources}`,
+       `# Commission Types: ${filterContext.commissionTypes}`,
+       `# Filter Summary: ${filterContext.filterSummary}`,
+       ''
+     ];
     
     return metadataComments.join('\n') + csvRows.join('\n');
   }
@@ -414,7 +435,16 @@ class DashboardExportService {
       alignment: { horizontal: "center" }
     };
     
-    // Sheet 1: Executive Summary
+    // Sheet 1: Filter Context
+    const filterContextData = this.createFilterContextSheet(metadata.filters, metadata);
+    const filterContextSheet = XLSX.utils.aoa_to_sheet(filterContextData);
+    
+    // Apply styles to filter context sheet
+    this.applyExcelStyles(filterContextSheet, headerStyle, currencyStyle, percentageStyle);
+    
+    XLSX.utils.book_append_sheet(workbook, filterContextSheet, "Filter Context");
+    
+    // Sheet 2: Executive Summary
     const summaryData = this.createExecutiveSummarySheet(data, metadata);
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     
@@ -423,7 +453,7 @@ class DashboardExportService {
     
     XLSX.utils.book_append_sheet(workbook, summarySheet, "Executive Summary");
     
-    // Sheet 2: Financial Data
+    // Sheet 3: Financial Data
     const financialData = this.createFinancialDataSheet(data);
     const financialSheet = XLSX.utils.aoa_to_sheet(financialData);
     
@@ -432,7 +462,7 @@ class DashboardExportService {
     
     XLSX.utils.book_append_sheet(workbook, financialSheet, "Financial Data");
     
-    // Sheet 3: Company Performance
+    // Sheet 4: Company Performance
     const companyData = this.createCompanyPerformanceSheet(data);
     const companySheet = XLSX.utils.aoa_to_sheet(companyData);
     
@@ -441,7 +471,7 @@ class DashboardExportService {
     
     XLSX.utils.book_append_sheet(workbook, companySheet, "Company Performance");
     
-    // Sheet 4: Payment Method Analysis
+    // Sheet 5: Payment Method Analysis
     const paymentData = this.createPaymentMethodSheet(data);
     const paymentSheet = XLSX.utils.aoa_to_sheet(paymentData);
     
@@ -450,7 +480,7 @@ class DashboardExportService {
     
     XLSX.utils.book_append_sheet(workbook, paymentSheet, "Payment Methods");
     
-    // Sheet 5: Commission Analysis
+    // Sheet 6: Commission Analysis
     const commissionData = this.createCommissionAnalysisSheet(data);
     const commissionSheet = XLSX.utils.aoa_to_sheet(commissionData);
     
@@ -459,7 +489,7 @@ class DashboardExportService {
     
     XLSX.utils.book_append_sheet(workbook, commissionSheet, "Commission Analysis");
     
-    // Sheet 6: Raw Data
+    // Sheet 7: Raw Data
     const rawData = this.createRawDataSheet(data);
     const rawSheet = XLSX.utils.aoa_to_sheet(rawData);
     
@@ -615,10 +645,33 @@ class DashboardExportService {
       ], yPosition);
     }
     
-    // Filters Applied
-    checkNewPage(80);
-    const filterDetails = this.formatFiltersForPDF(metadata.filters);
-    yPosition = addSection('Filters Applied', filterDetails, yPosition);
+         // Enhanced Filter Context
+     checkNewPage(100);
+     const filterContext = this.buildDetailedFilterContext(metadata.filters);
+     yPosition = addStyledText('FILTER CONTEXT AND CONFIGURATION', styles.subtitle, margin, yPosition);
+     yPosition += 10;
+     
+     // Filter summary table
+     const filterHeaders = ['Filter Type', 'Applied Value', 'Description'];
+     const filterRows = filterContext.map(filter => [
+       filter.type,
+       filter.value,
+       filter.description
+     ]);
+     
+     yPosition = addTable(filterHeaders, filterRows, yPosition);
+     
+     // Filter statistics
+     yPosition += 10;
+     yPosition = addStyledText('Filter Statistics:', styles.header, margin, yPosition);
+     yPosition += 5;
+     yPosition = addStyledText(`Total Active Filters: ${filterContext.length}`, styles.body, margin + 10, yPosition);
+     yPosition += 3;
+     yPosition = addStyledText(`Date Range: ${this.getDateRangeDescription(metadata.filters.dateRange)}`, styles.body, margin + 10, yPosition);
+     yPosition += 3;
+     yPosition = addStyledText(`Companies: ${this.getCompanyFilterDescription(metadata.filters.companies)}`, styles.body, margin + 10, yPosition);
+     yPosition += 3;
+     yPosition = addStyledText(`Payment Methods: ${this.getPaymentMethodFilterDescription(metadata.filters.payment_methods)}`, styles.body, margin + 10, yPosition);
     
     // Data Sample (first 10 records)
     if (data.length > 0) {
@@ -729,6 +782,178 @@ class DashboardExportService {
     }
     
     return filterDetails;
+  }
+  
+  // Enhanced filter context preservation methods
+  createFilterContextSheet(filters, metadata) {
+    const filterContext = this.buildDetailedFilterContext(filters);
+    
+    return [
+      ['FILTER CONTEXT - EXPORT CONFIGURATION'],
+      [''],
+      ['Export Information'],
+      ['Generated Date', new Date(metadata.exportDate).toLocaleString()],
+      ['Template', metadata.template || 'Custom Report'],
+      ['User', metadata.user.username],
+      ['Export Format', metadata.format || 'Unknown'],
+      [''],
+      ['Applied Filters'],
+      ['Filter Type', 'Filter Value', 'Description'],
+      ...filterContext.map(filter => [
+        filter.type,
+        filter.value,
+        filter.description
+      ]),
+      [''],
+      ['Filter Summary'],
+      ['Total Active Filters', filterContext.length],
+      ['Date Range Applied', this.getDateRangeDescription(filters.dateRange)],
+      ['Companies Filtered', this.getCompanyFilterDescription(filters.companies)],
+      ['Payment Methods Filtered', this.getPaymentMethodFilterDescription(filters.payment_methods)],
+      ['Amount Range Applied', this.getAmountRangeDescription(filters.amount_range)],
+      ['Revenue Sources Filtered', this.getRevenueSourceFilterDescription(filters.revenue_sources)],
+      ['Commission Types Filtered', this.getCommissionTypeFilterDescription(filters.commission_types)]
+    ];
+  }
+  
+  buildDetailedFilterContext(filters) {
+    const filterContext = [];
+    
+    // Date Range Filter
+    if (filters.dateRange) {
+      filterContext.push({
+        type: 'Date Range',
+        value: this.getDateRangeDescription(filters.dateRange),
+        description: 'Time period for data analysis'
+      });
+    }
+    
+    // Company Filter
+    if (filters.companies?.selected_companies?.length) {
+      filterContext.push({
+        type: 'Companies',
+        value: `${filters.companies.selected_companies.length} companies selected`,
+        description: 'Specific companies included in analysis'
+      });
+    }
+    
+    // Payment Method Filter
+    if (filters.payment_methods?.selected_methods?.length) {
+      filterContext.push({
+        type: 'Payment Methods',
+        value: `${filters.payment_methods.selected_methods.length} methods selected`,
+        description: 'Specific payment methods included in analysis'
+      });
+    }
+    
+    // Amount Range Filter
+    if (filters.amount_range?.min_amount || filters.amount_range?.max_amount) {
+      filterContext.push({
+        type: 'Amount Range',
+        value: this.getAmountRangeDescription(filters.amount_range),
+        description: 'Transaction amount range filter'
+      });
+    }
+    
+    // Revenue Sources Filter
+    if (filters.revenue_sources?.selected_sources?.length) {
+      filterContext.push({
+        type: 'Revenue Sources',
+        value: filters.revenue_sources.selected_sources.join(', '),
+        description: 'Specific revenue sources included in analysis'
+      });
+    }
+    
+    // Commission Types Filter
+    if (filters.commission_types?.selected_types?.length) {
+      filterContext.push({
+        type: 'Commission Types',
+        value: filters.commission_types.selected_types.join(', '),
+        description: 'Specific commission types included in analysis'
+      });
+    }
+    
+    // Employee Filter
+    if (filters.employees?.selected_employees?.length) {
+      filterContext.push({
+        type: 'Employees',
+        value: `${filters.employees.selected_employees.length} employees selected`,
+        description: 'Specific employees included in analysis'
+      });
+    }
+    
+    // Referral Partner Filter
+    if (filters.referral_partners?.selected_partners?.length) {
+      filterContext.push({
+        type: 'Referral Partners',
+        value: `${filters.referral_partners.selected_partners.length} partners selected`,
+        description: 'Specific referral partners included in analysis'
+      });
+    }
+    
+    // Disbursement Status Filter
+    if (filters.disbursement_status?.selected_statuses?.length) {
+      filterContext.push({
+        type: 'Disbursement Status',
+        value: filters.disbursement_status.selected_statuses.join(', '),
+        description: 'Specific disbursement statuses included in analysis'
+      });
+    }
+    
+    return filterContext;
+  }
+  
+  getDateRangeDescription(dateRange) {
+    if (!dateRange) return 'All time';
+    
+    if (dateRange.type === 'custom') {
+      return `${dateRange.start_date} to ${dateRange.end_date}`;
+    }
+    
+    return dateRange.type.replace(/_/g, ' ').toUpperCase();
+  }
+  
+  getCompanyFilterDescription(companies) {
+    if (!companies?.selected_companies?.length) return 'All companies';
+    return `${companies.selected_companies.length} companies selected`;
+  }
+  
+  getPaymentMethodFilterDescription(paymentMethods) {
+    if (!paymentMethods?.selected_methods?.length) return 'All payment methods';
+    return `${paymentMethods.selected_methods.length} methods selected`;
+  }
+  
+  getAmountRangeDescription(amountRange) {
+    if (!amountRange) return 'All amounts';
+    
+    const parts = [];
+    if (amountRange.min_amount) parts.push(`Min: $${amountRange.min_amount}`);
+    if (amountRange.max_amount) parts.push(`Max: $${amountRange.max_amount}`);
+    
+    return parts.length > 0 ? parts.join(' - ') : 'All amounts';
+  }
+  
+  getRevenueSourceFilterDescription(revenueSources) {
+    if (!revenueSources?.selected_sources?.length) return 'All revenue sources';
+    return revenueSources.selected_sources.join(', ');
+  }
+  
+  getCommissionTypeFilterDescription(commissionTypes) {
+    if (!commissionTypes?.selected_types?.length) return 'All commission types';
+    return commissionTypes.selected_types.join(', ');
+  }
+  
+  createFilterMetadataSection(filters) {
+    return {
+      dateRange: this.getDateRangeDescription(filters.dateRange),
+      companies: this.getCompanyFilterDescription(filters.companies),
+      paymentMethods: this.getPaymentMethodFilterDescription(filters.payment_methods),
+      amountRange: this.getAmountRangeDescription(filters.amount_range),
+      revenueSources: this.getRevenueSourceFilterDescription(filters.revenue_sources),
+      commissionTypes: this.getCommissionTypeFilterDescription(filters.commission_types),
+      totalActiveFilters: this.buildDetailedFilterContext(filters).length,
+      filterSummary: this.buildDetailedFilterContext(filters).map(f => `${f.type}: ${f.value}`).join('; ')
+    };
   }
   
   // Excel Sheet Creation Methods
