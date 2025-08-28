@@ -215,6 +215,7 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
   const companyBarData = useMemo(() => 
     companyPerformance.map(company => ({
       name: company.company,
+      value: company.totalRevenue,
       revenue: company.totalRevenue,
       transactions: company.transactionCount,
       averageValue: company.averageValue,
@@ -223,6 +224,7 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
   const paymentMethodBarData = useMemo(() => 
     paymentMethodAnalysis.map(method => ({
       name: method.method,
+      value: method.totalRevenue,
       revenue: method.totalRevenue,
       transactions: method.transactionCount,
       averageValue: method.averageValue,
@@ -230,6 +232,8 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
 
   const trendLineData = useMemo(() => 
     revenueTrends.map(trend => ({
+      name: trend.date,
+      value: trend.revenue,
       date: trend.date,
       revenue: trend.revenue,
       transactions: trend.transactions,
@@ -242,11 +246,19 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
     // Implement drill-down functionality
   }, []);
 
+  // Handle drill-up navigation
+  const handleDrillUp = useCallback((path: string[], parentSegment: string | null) => {
+    console.log('Drilling up:', { path, parentSegment });
+    // This would return to the previous level
+  }, []);
+
+  // Handle bar chart click
   const handleBarChartClick = useCallback((data: any) => {
     console.log('Bar chart clicked:', data);
     // Implement drill-down functionality
   }, []);
 
+  // Handle line chart click
   const handleLineChartClick = useCallback((data: any) => {
     console.log('Line chart clicked:', data);
     // Implement drill-down functionality
@@ -406,6 +418,14 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
             enableDrillDown={true}
             ariaLabel="Revenue breakdown pie chart showing payee and payor fee distribution"
             ariaDescription="Interactive pie chart displaying the breakdown of revenue between payee fees and payor fees"
+            customTooltipFormatter={(value, name) => {
+              const segment = pieChartData.find(item => item.name === name);
+              const percentage = revenueBreakdown.total > 0 ? (value / revenueBreakdown.total) * 100 : 0;
+              return [
+                `${name}: ${formatCurrency(value)}`,
+                `Percentage: ${formatPercentage(percentage, 1)}`,
+              ];
+            }}
           />
         </ChartContainer>
 
@@ -500,31 +520,31 @@ const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' 
           columns={[
             {
               key: 'company',
-              header: 'Company',
+              title: 'Company',
               sortable: true,
               render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
             },
             {
               key: 'totalRevenue',
-              header: 'Total Revenue',
+              title: 'Total Revenue',
               sortable: true,
               render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
             },
             {
               key: 'transactionCount',
-              header: 'Transactions',
+              title: 'Transactions',
               sortable: true,
               render: (value: number) => <span className="text-gray-600">{formatNumber(value)}</span>,
             },
             {
               key: 'averageValue',
-              header: 'Avg. Transaction',
+              title: 'Avg. Transaction',
               sortable: true,
               render: (value: number) => <span className="text-gray-600">{formatCurrency(value)}</span>,
             },
             {
               key: 'revenueShare',
-              header: 'Revenue Share',
+              title: 'Revenue Share',
               sortable: true,
               render: (value: number) => <span className="text-blue-600 font-medium">{formatPercentage(value)}</span>,
             },

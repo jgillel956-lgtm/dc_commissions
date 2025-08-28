@@ -394,9 +394,10 @@ describe('RevenueAnalysisTab', () => {
       });
       expect(paymentMethodData[1]).toEqual({
         name: 'ACH Transfer',
-        revenue: 15,
+        revenue: 15.0,
         transactions: 1,
-        averageValue: 1000
+        averageValue: 1000,
+        value: 15.0,
       });
     });
 
