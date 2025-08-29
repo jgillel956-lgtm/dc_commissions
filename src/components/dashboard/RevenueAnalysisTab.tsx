@@ -238,43 +238,45 @@ const RevenueAnalysisTab: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header with View Controls */}
-      <div className="flex justify-between items-center bg-white rounded-lg shadow-sm p-6">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Commission Analytics Dashboard</h2>
-          <p className="text-gray-600 mt-1">Real-time commission analysis from Zoho Analytics</p>
-        </div>
-        <div className="flex space-x-3">
-          <select
-            value={selectedTimeframe}
-            onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Time</option>
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-          </select>
-          <div className="flex space-x-1">
-            {(['overview', 'details', 'trends', 'analytics'] as const).map((view) => (
-              <button
-                key={view}
-                onClick={() => setActiveView(view)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === view
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {view.charAt(0).toUpperCase() + view.slice(1)}
-              </button>
-            ))}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Commission Analytics Dashboard</h2>
+            <p className="text-gray-600 mt-1">Real-time commission analysis from Zoho Analytics</p>
+          </div>
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="all">All Time</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+            </select>
+            <div className="flex space-x-1">
+              {(['overview', 'details', 'trends', 'analytics'] as const).map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setActiveView(view)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeView === view
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                  }`}
+                >
+                  {view.charAt(0).toUpperCase() + view.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -292,7 +294,7 @@ const RevenueAnalysisTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -308,7 +310,7 @@ const RevenueAnalysisTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -324,7 +326,7 @@ const RevenueAnalysisTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -345,29 +347,45 @@ const RevenueAnalysisTab: React.FC = () => {
       {activeView === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Top Employees Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Employees by Commission</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Employees by Commission</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData.employeeChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']} />
-                <Bar dataKey="commission" fill="#3B82F6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']}
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Bar dataKey="commission" fill="#3B82F6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Top Companies Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Companies by Commission</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Companies by Commission</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData.companyChart}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']} />
-                <Bar dataKey="commission" fill="#10B981" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']}
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Bar dataKey="commission" fill="#10B981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -375,7 +393,7 @@ const RevenueAnalysisTab: React.FC = () => {
       )}
 
       {activeView === 'details' && (
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Recent Commission Transactions</h3>
           </div>
@@ -421,15 +439,30 @@ const RevenueAnalysisTab: React.FC = () => {
       )}
 
       {activeView === 'trends' && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Commission Trends</h3>
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={chartData.monthlyChart}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']} />
-              <Line type="monotone" dataKey="commission" stroke="#3B82F6" strokeWidth={3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip 
+                formatter={(value) => [`$${value.toLocaleString()}`, 'Commission']}
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="commission" 
+                stroke="#3B82F6" 
+                strokeWidth={3}
+                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -438,11 +471,11 @@ const RevenueAnalysisTab: React.FC = () => {
       {activeView === 'analytics' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Employee Performance Analysis */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Employee Performance Analysis</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Employee Performance Analysis</h3>
             <div className="space-y-4">
               {employeeAnalysis.slice(0, 10).map((employee, index) => (
-                <div key={employee.employeeId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={employee.employeeId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div>
                     <h4 className="font-medium text-gray-900">{employee.employeeName}</h4>
                     <p className="text-sm text-gray-600">
@@ -459,11 +492,11 @@ const RevenueAnalysisTab: React.FC = () => {
           </div>
 
           {/* Company Performance Analysis */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Performance Analysis</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Company Performance Analysis</h3>
             <div className="space-y-4">
               {companyAnalysis.slice(0, 10).map((company, index) => (
-                <div key={company.companyId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={company.companyId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div>
                     <h4 className="font-medium text-gray-900">{company.companyName}</h4>
                     <p className="text-sm text-gray-600">
@@ -482,15 +515,17 @@ const RevenueAnalysisTab: React.FC = () => {
       )}
 
       {/* Data Source Footer */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-800">
+          <div className="ml-4">
+            <p className="text-sm font-medium text-blue-900">
               <strong>Data Source:</strong> Real-time commission data from Zoho Analytics
             </p>
             <p className="text-xs text-blue-700 mt-1">
