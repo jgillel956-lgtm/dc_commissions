@@ -3,6 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 
+// Import actual components
+import RevenueDashboard from './pages/RevenueDashboard';
+import Login from './pages/Login';
+import TableView from './pages/TableView';
+import AdminPanel from './pages/AdminPanel';
+import OAuthSetup from './pages/OAuthSetup';
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,37 +22,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Simple placeholder components
-const Dashboard = () => (
-  <div className="min-h-screen bg-gray-100 p-8">
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Revenue Analytics Dashboard</h1>
-      <div className="bg-white rounded-lg shadow p-6">
-        <p className="text-gray-600">Dashboard is being loaded...</p>
-        <p className="text-sm text-gray-500 mt-2">This is a placeholder while the full dashboard components are being developed.</p>
-      </div>
-    </div>
-  </div>
-);
-
-const Login = () => (
-  <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div className="bg-white rounded-lg shadow p-8 max-w-md w-full">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Login</h1>
-      <p className="text-gray-600">Login functionality is being developed...</p>
-    </div>
-  </div>
-);
-
-const Register = () => (
-  <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div className="bg-white rounded-lg shadow p-8 max-w-md w-full">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Register</h1>
-      <p className="text-gray-600">Registration functionality is being developed...</p>
-    </div>
-  </div>
-);
-
+// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // For now, just render the children without authentication
   return <>{children}</>;
@@ -58,12 +35,14 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/oauth-setup" element={<OAuthSetup />} />
+            <Route path="/table-view" element={<TableView activeTable="employee_commissions_DC" />} />
             <Route
               path="/"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <RevenueDashboard />
                 </ProtectedRoute>
               }
             />
@@ -71,7 +50,7 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <RevenueDashboard />
                 </ProtectedRoute>
               }
             />

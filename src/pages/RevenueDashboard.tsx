@@ -9,7 +9,7 @@ import DashboardNavigation from '../components/dashboard/DashboardNavigation';
 import NavigationHistory from '../components/dashboard/NavigationHistory';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { ResponsiveContainer, ResponsiveText } from '../components/dashboard/ResponsiveDesign';
-// import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
+import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
 
 const RevenueDashboard: React.FC = () => {
@@ -155,21 +155,7 @@ const RevenueDashboard: React.FC = () => {
   const renderTabContent = () => {
     switch (dashboardState.activeTab) {
       case 'revenue':
-        return (
-          <div className="space-y-6">
-            <div className="text-center py-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Revenue Analysis Tab
-              </h2>
-              <p className="text-gray-600">
-                This tab will contain 8 KPI widgets and revenue breakdown charts
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Coming soon - Tab implementation in progress
-              </p>
-            </div>
-          </div>
-        );
+        return <RevenueAnalysisTab />;
       
       case 'commission':
         return <CommissionAnalysisTab />;
