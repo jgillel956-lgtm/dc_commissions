@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 
+// Import context providers
+import { AuthProvider } from './contexts/AuthContext';
+
 // Import actual components
 import RevenueDashboard from './pages/RevenueDashboard';
 import Login from './pages/Login';
@@ -31,32 +34,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/oauth-setup" element={<OAuthSetup />} />
-            <Route path="/table-view" element={<TableView activeTable="employee_commissions_DC" />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <RevenueDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <RevenueDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/oauth-setup" element={<OAuthSetup />} />
+              <Route path="/table-view" element={<TableView activeTable="employee_commissions_DC" />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <RevenueDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <RevenueDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
