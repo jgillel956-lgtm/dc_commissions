@@ -364,6 +364,35 @@ class ZohoAnalyticsAPI {
     this.accessToken = null;
   }
 
+  // Execute custom SQL query
+  async executeQuery(query: string): Promise<ZohoAnalyticsResponse<any>> {
+    try {
+      const token = await this.getAccessToken();
+      
+      const payload = {
+        ZOHO_WORKSPACE_ID: this.workspaceId,
+        query: query
+      };
+
+      const response = await axios({
+        method: 'POST',
+        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/api/v2'}/query`,
+        headers: {
+          'Authorization': `Zoho-oauthtoken ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: payload
+      });
+
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        await this.handleAPIError(error);
+      }
+      throw error;
+    }
+  }
+
   // Test connection
   async testConnection(): Promise<boolean> {
     try {

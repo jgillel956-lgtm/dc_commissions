@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { DashboardFilters, RevenueMasterRecord } from '../types/dashboard';
 
-export type DashboardTab = 'revenue' | 'commission' | 'interest';
+export type DashboardTab = 'revenue' | 'commission' | 'interest' | 'analytics-demo';
 
 export interface DashboardState {
   activeTab: DashboardTab;
@@ -143,7 +143,8 @@ export const useDashboardState = (initialTab: DashboardTab = 'revenue'): Dashboa
   const tabStates = useRef<Record<DashboardTab, TabState>>({
     revenue: { ...DEFAULT_TAB_STATE },
     commission: { ...DEFAULT_TAB_STATE },
-    interest: { ...DEFAULT_TAB_STATE }
+    interest: { ...DEFAULT_TAB_STATE },
+    'analytics-demo': { ...DEFAULT_TAB_STATE }
   });
 
   // Unsaved changes tracking

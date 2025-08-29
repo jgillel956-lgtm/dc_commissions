@@ -55,6 +55,16 @@
       }
     },
     {
+      "src": "/api/revenue-analytics",
+      "dest": "/api/revenue-analytics.mjs",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    },
+
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },

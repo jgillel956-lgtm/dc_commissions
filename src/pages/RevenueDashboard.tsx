@@ -7,6 +7,7 @@ import DashboardNavigation from '../components/dashboard/DashboardNavigation';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
+import RevenueAnalyticsDemo from '../components/dashboard/RevenueAnalyticsDemo';
 
 const RevenueDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -60,7 +61,8 @@ const RevenueDashboard: React.FC = () => {
     const tabLabels = {
       revenue: 'Revenue Analysis',
       commission: 'Commission Analysis',
-      interest: 'Interest Analysis'
+      interest: 'Interest Analysis',
+      'analytics-demo': 'Analytics Demo'
     };
 
     return [
@@ -88,6 +90,12 @@ const RevenueDashboard: React.FC = () => {
       label: 'Interest Analysis',
       tab: 'interest' as DashboardTab,
       description: 'Interest revenue and performance analysis'
+    },
+    {
+      id: 'analytics-demo-tab',
+      label: 'Analytics Demo',
+      tab: 'analytics-demo' as DashboardTab,
+      description: 'Complex query revenue analytics demo'
     }
   ], []);
 
@@ -133,6 +141,9 @@ const RevenueDashboard: React.FC = () => {
             </div>
           </div>
         );
+
+      case 'analytics-demo':
+        return <RevenueAnalyticsDemo />;
 
       default:
         return null;
@@ -210,12 +221,13 @@ const RevenueDashboard: React.FC = () => {
 
           {/* Tab Navigation */}
           <div className="flex space-x-1 pb-4">
-            {(['revenue', 'commission', 'interest'] as const).map((tab) => {
+            {(['revenue', 'commission', 'interest', 'analytics-demo'] as const).map((tab) => {
               const isActive = dashboardState.activeTab === tab;
               const tabConfig = {
                 revenue: { label: 'Revenue Analysis', icon: '📊' },
                 commission: { label: 'Commission Analysis', icon: '💰' },
-                interest: { label: 'Interest Analysis', icon: '📈' }
+                interest: { label: 'Interest Analysis', icon: '📈' },
+                'analytics-demo': { label: 'Analytics Demo', icon: '🔍' }
               };
               
               return (
