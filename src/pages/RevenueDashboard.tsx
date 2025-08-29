@@ -5,7 +5,7 @@ import TabNavigation from '../components/dashboard/TabNavigation';
 import FilterPersistence from '../components/dashboard/FilterPersistence';
 import DashboardNavigation from '../components/dashboard/DashboardNavigation';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
-import { ResponsiveContainer, ResponsiveText } from '../components/dashboard/ResponsiveDesign';
+
 import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
 
@@ -131,24 +131,14 @@ const RevenueDashboard: React.FC = () => {
     <DashboardLayout
       headerContent={
         <div className="flex justify-between items-center w-full">
-          <div>
-            <ResponsiveText
-              mobileSize="text-xl"
-              tabletSize="text-2xl"
-              desktopSize="text-3xl"
-              className="font-bold text-gray-900"
-            >
-              Revenue Analytics Dashboard
-            </ResponsiveText>
-            <ResponsiveText
-              mobileSize="text-xs"
-              tabletSize="text-sm"
-              desktopSize="text-sm"
-              className="mt-1 text-gray-500"
-            >
-              Comprehensive analysis of revenue, commissions, and business performance
-            </ResponsiveText>
-          </div>
+                           <div>
+                   <h1 className="text-3xl font-bold text-gray-900">
+                     Revenue Analytics Dashboard
+                   </h1>
+                   <p className="text-sm text-gray-500 mt-1">
+                     Comprehensive analysis of revenue, commissions, and business performance
+                   </p>
+                 </div>
           
           <div className="flex items-center space-x-4">
             <button
@@ -205,25 +195,39 @@ const RevenueDashboard: React.FC = () => {
         className="mb-6"
       />
 
-      {/* Dashboard Content */}
-      <ResponsiveContainer>
-        {/* Welcome Message - Only show when no tab is selected */}
-        {dashboardState.activeTab === 'revenue' && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Welcome to Revenue Analytics Dashboard
-              </h2>
-              <p className="text-gray-600">
-                Select a tab below to view detailed analytics and insights
-              </p>
-            </div>
-          </div>
-        )}
+                   {/* Dashboard Content */}
+             <div className="w-full">
+               {/* Welcome Message - Only show when no tab is selected */}
+               {dashboardState.activeTab === 'revenue' && (
+                 <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
+                   <div className="text-center">
+                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                       Welcome to Revenue Analytics Dashboard
+                     </h2>
+                     <p className="text-lg text-gray-600 mb-6">
+                       Select a tab below to view detailed analytics and insights from your Zoho Analytics data
+                     </p>
+                     <div className="grid grid-cols-3 gap-6 max-w-4xl mx-auto">
+                       <div className="bg-blue-50 p-4 rounded-lg">
+                         <h3 className="font-semibold text-blue-900 mb-2">Commission Analysis</h3>
+                         <p className="text-sm text-blue-700">Track employee and company commission performance</p>
+                       </div>
+                       <div className="bg-green-50 p-4 rounded-lg">
+                         <h3 className="font-semibold text-green-900 mb-2">Revenue Tracking</h3>
+                         <p className="text-sm text-green-700">Monitor revenue streams and profitability</p>
+                       </div>
+                       <div className="bg-purple-50 p-4 rounded-lg">
+                         <h3 className="font-semibold text-purple-900 mb-2">Performance Analytics</h3>
+                         <p className="text-sm text-purple-700">Analyze trends and business metrics</p>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
-        {/* Tab Content */}
-        {renderTabContent()}
-      </ResponsiveContainer>
+               {/* Tab Content */}
+               {renderTabContent()}
+             </div>
     </DashboardLayout>
   );
 };
