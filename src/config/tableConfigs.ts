@@ -52,20 +52,7 @@ export const employeeCommissionSchema = yup.object({
   description: yup.string().required('Description is required')
 });
 
-export const monthlyInterchangeIncomeSchema = yup.object({
-  company_id: yup.number().required('Company is required'),
-  interchange_company: yup.string().required('Interchange company is required'),
-  interchange_amount: yup.number().min(0, 'Interchange amount must be positive').required('Interchange amount is required'),
-  invoice_number: yup.string().required('Invoice number is required'),
-  payment_date: yup.date().required('Payment date is required'),
-  transaction_period_start: yup.date().required('Transaction period start is required'),
-  transaction_period_end: yup.date().required('Transaction period end is required'),
-  transaction_count: yup.number().min(0, 'Transaction count must be positive').nullable(),
-  interchange_rate: yup.number().min(0, 'Interchange rate must be positive').nullable(),
-  notes: yup.string().required('Notes are required'),
-  posted_date: yup.date().required('Posted date is required'),
-  active: yup.boolean().required('Active status is required')
-});
+
 
 export const monthlyInterestRevenueSchema = yup.object({
   company_id: yup.number().required('Company is required'),
@@ -125,7 +112,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         label: 'Payment Method',
         type: 'select',
         required: true,
-        lookupTable: 'payment_modalities',
+        lookupTable: 'payment_type_DC',
         lookupValueField: 'id',
         lookupDisplayField: 'payment_method'
       },
@@ -265,101 +252,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     displayColumns: ['employee_name', 'employee_id', 'payment_method_id', 'company_id', 'commission_percentage', 'effective_start_date', 'active']
   },
 
-  monthly_interchange_income_DC: {
-    name: 'Monthly Interchange Income',
-    icon: TrendingUp,
-    tableName: 'monthly_interchange_income_DC',
-    tableId: '2103833000018129022',
-    fields: [
-      {
-        key: 'company_id',
-        label: 'Company',
-        type: 'select',
-        required: true,
-        lookupTable: 'insurance_companies_DC',
-        lookupValueField: 'id',
-        lookupDisplayField: 'company'
-      },
-      {
-        key: 'interchange_company',
-        label: 'Interchange Company',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter interchange company name'
-      },
-      {
-        key: 'interchange_amount',
-        label: 'Interchange Amount',
-        type: 'currency',
-        required: true,
-        min: 0,
-        step: 0.01,
-        placeholder: '0.00'
-      },
-      {
-        key: 'invoice_number',
-        label: 'Invoice Number',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter invoice number'
-      },
-      {
-        key: 'payment_date',
-        label: 'Payment Date',
-        type: 'date',
-        required: true
-      },
-      {
-        key: 'transaction_period_start',
-        label: 'Transaction Period Start',
-        type: 'date',
-        required: true
-      },
-      {
-        key: 'transaction_period_end',
-        label: 'Transaction Period End',
-        type: 'date',
-        required: true
-      },
-      {
-        key: 'transaction_count',
-        label: 'Transaction Count',
-        type: 'number',
-        required: false,
-        min: 0,
-        placeholder: 'Enter transaction count'
-      },
-      {
-        key: 'interchange_rate',
-        label: 'Interchange Rate',
-        type: 'percentage',
-        required: false,
-        min: 0,
-        step: 0.0001,
-        placeholder: '0.0000'
-      },
-      {
-        key: 'notes',
-        label: 'Notes',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter notes'
-      },
-      {
-        key: 'posted_date',
-        label: 'Posted Date',
-        type: 'date',
-        required: true
-      },
-      {
-        key: 'active',
-        label: 'Active',
-        type: 'toggle',
-        required: true
-      }
-    ],
-    displayColumns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active']
-  },
+
 
   monthly_interest_revenue_DC: {
     name: 'Monthly Interest Revenue',
@@ -499,28 +392,7 @@ export const tableConfigs: Record<string, TableConfig> = {
     displayColumns: ['partner_name', 'partner_type', 'contact_email', 'contact_phone', 'commission_percentage', 'active']
   },
 
-  insurance_companies_DC: {
-    name: 'Insurance Companies',
-    icon: Building,
-    tableName: 'insurance_companies_DC',
-    tableId: '2103833000004379120',
-    fields: [
-      {
-        key: 'company',
-        label: 'Company Name',
-        type: 'text',
-        required: true,
-        placeholder: 'Enter company name'
-      },
-      {
-        key: 'active',
-        label: 'Active',
-        type: 'toggle',
-        required: true
-      }
-    ],
-    displayColumns: ['company', 'active']
-  },
+
 
   vendor_costs_DC: {
     name: 'Vendor Costs',
@@ -565,10 +437,10 @@ export const tableConfigs: Record<string, TableConfig> = {
     displayColumns: ['vendor_name', 'cost_type', 'amount', 'date', 'active']
   },
 
-  payment_modalities: {
-    name: 'Payment Modalities',
+  payment_type_DC: {
+    name: 'Payment Types',
     icon: CreditCard,
-    tableName: 'payment_modalities',
+    tableName: 'payment_type_DC',
     tableId: '2103833000011978002',
     fields: [
       {
@@ -782,20 +654,20 @@ export const columnFormatters: Record<string, (value: any) => string> = {
 export const validationSchemas: Record<string, any> = {
   company_upcharge_fees_DC: companyUpchargeFeeSchema,
   employee_commissions_DC: employeeCommissionSchema,
-  monthly_interchange_income_DC: monthlyInterchangeIncomeSchema,
   monthly_interest_revenue_DC: monthlyInterestRevenueSchema,
   referral_partners_DC: referralPartnerSchema,
   vendor_costs_DC: vendorCostsSchema,
-  payment_modalities: paymentModalitiesSchema
+  payment_type_DC: paymentModalitiesSchema
 };
 
 // Default sort configurations
 export const defaultSorts = {
   company_upcharge_fees_DC: { field: 'effective_start_date', order: 'desc' as const },
   employee_commissions_DC: { field: 'employee_name', order: 'asc' as const },
-  monthly_interchange_income_DC: { field: 'payment_date', order: 'desc' as const },
   monthly_interest_revenue_DC: { field: 'posted_date', order: 'desc' as const },
   referral_partners_DC: { field: 'partner_name', order: 'asc' as const },
+  vendor_costs_DC: { field: 'date', order: 'desc' as const },
+  payment_type_DC: { field: 'payment_method', order: 'asc' as const },
 };
 
 // Export configurations
@@ -810,11 +682,6 @@ export const exportConfigs = {
     columns: ['employee_name', 'employee_id', 'payment_method_name', 'company_name', 'commission_percentage', 'effective_start_date', 'active'],
     headers: ['Employee Name', 'Employee ID', 'Payment Method', 'Company', 'Commission Percentage', 'Effective Start Date', 'Active'],
   },
-  monthly_interchange_income_DC: {
-    filename: 'monthly-interchange-income-export',
-    columns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active'],
-    headers: ['Company', 'Interchange Company', 'Interchange Amount', 'Invoice Number', 'Payment Date', 'Transaction Count', 'Interchange Rate', 'Active'],
-  },
   monthly_interest_revenue_DC: {
     filename: 'monthly-interest-revenue-export',
     columns: ['company_name', 'interest_period_start', 'interest_period_end', 'interest_amount', 'account_balance', 'interest_rate', 'bank_account_name', 'active'],
@@ -824,5 +691,15 @@ export const exportConfigs = {
     filename: 'referral-partners-export',
     columns: ['partner_name', 'partner_type', 'contact_email', 'contact_phone', 'commission_percentage', 'active'],
     headers: ['Partner Name', 'Partner Type', 'Contact Email', 'Contact Phone', 'Commission Percentage', 'Active'],
+  },
+  vendor_costs_DC: {
+    filename: 'vendor-costs-export',
+    columns: ['vendor_name', 'cost_type', 'amount', 'date', 'active'],
+    headers: ['Vendor Name', 'Cost Type', 'Amount', 'Date', 'Active'],
+  },
+  payment_type_DC: {
+    filename: 'payment-types-export',
+    columns: ['payment_method', 'description', 'active'],
+    headers: ['Payment Method', 'Description', 'Active'],
   },
 };
