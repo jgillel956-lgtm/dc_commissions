@@ -207,17 +207,19 @@ const RevenueDashboard: React.FC = () => {
 
       {/* Dashboard Content */}
       <ResponsiveContainer>
-        {/* Welcome Message */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome to Revenue Analytics Dashboard
-            </h2>
-            <p className="text-gray-600">
-              Select a tab below to view detailed analytics and insights
-            </p>
+        {/* Welcome Message - Only show when no tab is selected */}
+        {dashboardState.activeTab === 'revenue' && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome to Revenue Analytics Dashboard
+              </h2>
+              <p className="text-gray-600">
+                Select a tab below to view detailed analytics and insights
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tab Content */}
         {renderTabContent()}

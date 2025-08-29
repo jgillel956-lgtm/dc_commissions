@@ -25,34 +25,36 @@ const RevenueAnalysisTab: React.FC = () => {
     }
 
     const rows = commissionData.data;
+    console.log('Processing rows:', rows);
     
     // Calculate totals
     const totalCommissions = rows.reduce((sum, row) => {
-      const amount = parseFloat(row.commission_amount) || 0;
+      const amount = parseFloat(row.commission_amount || row.commission_amount || '0') || 0;
+      console.log(`Row commission_amount: ${row.commission_amount}, parsed: ${amount}`);
       return sum + amount;
     }, 0);
 
-    const totalEmployees = new Set(rows.map(row => row.employee_id)).size;
-    const totalCompanies = new Set(rows.map(row => row.company_id)).size;
+    const totalEmployees = new Set(rows.map(row => row.employee_id || row.employee_id)).size;
+    const totalCompanies = new Set(rows.map(row => row.company_id || row.company_id)).size;
 
     // Group by company
     const companyBreakdown = rows.reduce((acc, row) => {
-      const companyId = row.company_id;
+      const companyId = row.company_id || row.company_id || 'Unknown';
       if (!acc[companyId]) {
         acc[companyId] = { company: companyId, totalCommissions: 0, employeeCount: 0 };
       }
-      acc[companyId].totalCommissions += parseFloat(row.commission_amount) || 0;
+      acc[companyId].totalCommissions += parseFloat(row.commission_amount || '0') || 0;
       acc[companyId].employeeCount += 1;
       return acc;
     }, {} as Record<string, { company: string; totalCommissions: number; employeeCount: number }>);
 
     // Group by employee
     const employeeBreakdown = rows.reduce((acc, row) => {
-      const employeeId = row.employee_id;
+      const employeeId = row.employee_id || row.employee_id || 'Unknown';
       if (!acc[employeeId]) {
-        acc[employeeId] = { employee: row.employee_name || employeeId, totalCommissions: 0, commissionCount: 0 };
+        acc[employeeId] = { employee: row.employee_name || row.employee_name || employeeId, totalCommissions: 0, commissionCount: 0 };
       }
-      acc[employeeId].totalCommissions += parseFloat(row.commission_amount) || 0;
+      acc[employeeId].totalCommissions += parseFloat(row.commission_amount || '0') || 0;
       acc[employeeId].commissionCount += 1;
       return acc;
     }, {} as Record<string, { employee: string; totalCommissions: number; commissionCount: number }>);
@@ -260,27 +262,31 @@ const RevenueAnalysisTab: React.FC = () => {
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Commissions by Company</h4>
               <div className="space-y-2">
-                {processedData.companyBreakdown.slice(0, 5).map((item: any, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-700">Company {item.company}</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ${item.totalCommissions.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                                 {processedData.companyBreakdown.slice(0, 5).map((item: any, index) => (
+                   <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                     <span className="text-sm text-gray-700">
+                       {item.company === 'Unknown' ? 'Unknown Company' : `Company ${item.company}`}
+                     </span>
+                     <span className="text-sm font-medium text-gray-900">
+                       ${item.totalCommissions.toLocaleString()}
+                     </span>
+                   </div>
+                 ))}
               </div>
             </div>
             <div>
               <h4 className="text-sm font-medium text-gray-600 mb-2">Top Employees</h4>
               <div className="space-y-2">
-                {processedData.employeeBreakdown.slice(0, 5).map((item: any, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <span className="text-sm text-gray-700">{item.employee}</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ${item.totalCommissions.toLocaleString()}
-                    </span>
-                  </div>
-                ))}
+                                 {processedData.employeeBreakdown.slice(0, 5).map((item: any, index) => (
+                   <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                     <span className="text-sm text-gray-700">
+                       {item.employee === 'Unknown' ? 'Unknown Employee' : item.employee}
+                     </span>
+                     <span className="text-sm font-medium text-gray-900">
+                       ${item.totalCommissions.toLocaleString()}
+                     </span>
+                   </div>
+                 ))}
               </div>
             </div>
           </div>
@@ -302,17 +308,25 @@ const RevenueAnalysisTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {processedData.recentCommissions.map((row, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.employee_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Company {row.company_id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${parseFloat(row.commission_amount || '0').toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.commission_percentage}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.effective_start_date}</td>
-                  </tr>
-                ))}
+                                 {processedData.recentCommissions.map((row, index) => (
+                   <tr key={index}>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                       {row.employee_name || row.employee_name || 'Unknown'}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                       Company {row.company_id || row.company_id || 'Unknown'}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                       ${parseFloat(row.commission_amount || '0').toLocaleString()}
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                       {row.commission_percentage || '0'}%
+                     </td>
+                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                       {row.effective_start_date || 'N/A'}
+                     </td>
+                   </tr>
+                 ))}
               </tbody>
             </table>
           </div>
