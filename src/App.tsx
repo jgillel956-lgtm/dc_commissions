@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
 
@@ -31,6 +31,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// TableView wrapper component to handle URL parameters
+const TableViewWrapper = () => {
+  const [searchParams] = useSearchParams();
+  const tableParam = searchParams.get('table');
+  const activeTable = tableParam || 'employee_commissions_DC';
+  
+  return <TableView activeTable={activeTable} />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -41,7 +50,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/oauth-setup" element={<OAuthSetup />} />
-              <Route path="/table-view" element={<TableView activeTable="employee_commissions_DC" />} />
+              <Route path="/table-view" element={<TableViewWrapper />} />
               <Route
                 path="/"
                 element={

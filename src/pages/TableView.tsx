@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Plus, Search, Filter, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, RefreshCw, ArrowLeft, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
@@ -20,6 +21,7 @@ interface TableViewProps {
 }
 
 const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<string>('');
@@ -31,6 +33,7 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const [deletingRecord, setDeletingRecord] = useState<any>(null);
   const [showAuthTest, setShowAuthTest] = useState(false);
   const [useGroupedView, setUseGroupedView] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Employee Commission specific filters
   const [employeeFilters, setEmployeeFilters] = useState({
@@ -174,6 +177,11 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     }
   }, [exportMutation]);
 
+  // Handle table navigation
+  const handleTableChange = useCallback((tableKey: string) => {
+    navigate(`/table-view?table=${tableKey}`);
+  }, [navigate]);
+
   const records = data?.data || [];
   const totalPages = data?.total ? Math.ceil(data.total / 50) : 1;
 
@@ -192,107 +200,185 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   }, [records, activeTable]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {tableConfig.name}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage {tableConfig.name.toLowerCase()} data
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Button onClick={handleRefresh} variant="secondary" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-          <Button onClick={handleExport} variant="secondary" size="sm">
-            Export
-          </Button>
-          <Button onClick={() => setShowAuthTest(true)} variant="secondary" size="sm">
-            Auth Test
-          </Button>
-          <Button onClick={() => setShowAddModal(true)} variant="primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Record
-          </Button>
-        </div>
-      </div>
-
-      {/* Employee Commission Specific Filters */}
-      {activeTable === 'employee_commissions_DC' && (
-        <div className="space-y-4">
-          <EmployeeCommissionFilters
-            filters={employeeFilters}
-            onFilterChange={handleEmployeeFilterChange}
-            onClearFilters={handleClearEmployeeFilters}
-            employeeNames={employeeNames}
-          />
-          {!useGroupedView && (
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setUseGroupedView(true)}
-                variant="secondary"
-                size="sm"
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
-                Grouped View
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Data Management
+                </h1>
+                <p className="text-gray-600">
+                  Manage your business data and configurations
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button onClick={handleRefresh} variant="secondary" size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button onClick={handleExport} variant="secondary" size="sm">
+                Export
+              </Button>
+              <Button onClick={() => setShowAuthTest(true)} variant="secondary" size="sm">
+                Auth Test
               </Button>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              type="text"
-              placeholder="Search records..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-            />
           </div>
         </div>
       </div>
 
-      {/* Data Table */}
-      {activeTable === 'employee_commissions_DC' && useGroupedView ? (
-        <GroupedEmployeeTable
-          data={records}
-          tableConfig={tableConfig}
-          loading={isLoading}
-          onSort={handleSort}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          onAdd={handleAddRecord}
-          sortField={sortField}
-          sortOrder={sortOrder}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onToggleView={() => setUseGroupedView(false)}
-        />
-      ) : (
-        <DataTable
-          data={records}
-          tableConfig={tableConfig}
-          loading={isLoading}
-          onSort={handleSort}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-          sortField={sortField}
-          sortOrder={sortOrder}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
-      )}
+      <div className="flex">
+        {/* Sidebar */}
+        <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-6">
+              {!sidebarCollapsed && (
+                <h2 className="text-lg font-semibold text-gray-900">Tables</h2>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Settings className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+            
+            <nav className="space-y-2">
+              {Object.entries(tableConfigs).map(([tableKey, config]) => {
+                const Icon = config.icon;
+                const isActive = activeTable === tableKey;
+                
+                return (
+                  <button
+                    key={tableKey}
+                    onClick={() => handleTableChange(tableKey)}
+                    className={`w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <span className="truncate">{config.name}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Table Header */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {tableConfig.name}
+                  </h2>
+                  <p className="text-gray-600">
+                    Manage {tableConfig.name.toLowerCase()} data
+                  </p>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <Button onClick={() => setShowAddModal(true)} variant="primary">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Record
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Employee Commission Specific Filters */}
+            {activeTable === 'employee_commissions_DC' && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <EmployeeCommissionFilters
+                  filters={employeeFilters}
+                  onFilterChange={handleEmployeeFilterChange}
+                  onClearFilters={handleClearEmployeeFilters}
+                  employeeNames={employeeNames}
+                />
+                {!useGroupedView && (
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      onClick={() => setUseGroupedView(true)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Grouped View
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Search records..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Data Table */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              {activeTable === 'employee_commissions_DC' && useGroupedView ? (
+                <GroupedEmployeeTable
+                  data={records}
+                  tableConfig={tableConfig}
+                  loading={isLoading}
+                  onSort={handleSort}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                  onAdd={handleAddRecord}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  onToggleView={() => setUseGroupedView(false)}
+                />
+              ) : (
+                <DataTable
+                  data={records}
+                  tableConfig={tableConfig}
+                  loading={isLoading}
+                  onSort={handleSort}
+                  onEdit={handleEditClick}
+                  onDelete={handleDeleteClick}
+                  sortField={sortField}
+                  sortOrder={sortOrder}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Add Record Modal */}
       <Modal
