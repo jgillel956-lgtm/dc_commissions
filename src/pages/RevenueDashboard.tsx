@@ -1,12 +1,9 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { revenueApi } from '../services/revenueApi';
 import { useDashboardState, DashboardTab } from '../hooks/useDashboardState';
-import { useNavigationHistory } from '../hooks/useNavigationHistory';
 import TabNavigation from '../components/dashboard/TabNavigation';
 import FilterPersistence from '../components/dashboard/FilterPersistence';
 import DashboardNavigation from '../components/dashboard/DashboardNavigation';
-import NavigationHistory from '../components/dashboard/NavigationHistory';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { ResponsiveContainer, ResponsiveText } from '../components/dashboard/ResponsiveDesign';
 import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
@@ -15,64 +12,17 @@ import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab
 const RevenueDashboard: React.FC = () => {
   const { user } = useAuth();
   const dashboardState = useDashboardState('revenue');
-  const navigationHistory = useNavigationHistory(50);
-
-  // Fetch dashboard data
-  const fetchDashboardData = useCallback(async () => {
-    if (!user) return;
-
-    dashboardState.setLoading(true);
-    dashboardState.setError(null);
-
-    try {
-      const response = await revenueApi.fetchDashboardData({
-        filters: dashboardState.filters
-      });
-
-      dashboardState.setData(response.data || []);
-      dashboardState.setPagination({
-        currentPage: 1,
-        pageSize: 50,
-        totalRecords: response.data?.length || 0,
-        totalPages: 1
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      dashboardState.setError(error instanceof Error ? error.message : 'Failed to fetch dashboard data');
-    } finally {
-      dashboardState.setLoading(false);
-    }
-  }, [user, dashboardState]);
-
-  // Handle filter changes
-  const handleFilterChange = useCallback((newFilters: Partial<typeof dashboardState.filters>) => {
-    dashboardState.updateFilters(newFilters);
-    dashboardState.setPagination({ currentPage: 1 });
-  }, [dashboardState]);
 
   // Handle tab change
   const handleTabChange = useCallback((tab: DashboardTab) => {
     dashboardState.setActiveTab(tab);
   }, [dashboardState]);
 
-  // Handle pagination change
-  const handlePaginationChange = useCallback((page: number, pageSize?: number) => {
-    dashboardState.setPagination({ 
-      currentPage: page,
-      pageSize: pageSize || dashboardState.pagination.pageSize
-    });
-  }, [dashboardState]);
-
-  // Handle sorting change
-  const handleSortingChange = useCallback((field: string, order: 'asc' | 'desc') => {
-    // Sorting will be implemented in future tasks
-    console.log('Sorting:', field, order);
-  }, []);
-
   // Refresh data
   const handleRefresh = useCallback(() => {
-    dashboardState.refreshData();
-  }, [dashboardState]);
+    // Refresh will be handled by individual tabs
+    console.log('Refresh requested');
+  }, []);
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -82,31 +32,26 @@ const RevenueDashboard: React.FC = () => {
   // Clear specific filter
   const handleClearFilter = useCallback((filterKey: keyof typeof dashboardState.filters) => {
     // Reset specific filter to default value
-         const defaultFilters = {
-       dateRange: { startDate: null, endDate: null, preset: 'last30days' },
-       companies: [],
-       paymentMethods: [],
-       revenueSources: [],
-       employees: [],
-       commissionTypes: [],
-       amountRange: { min: null, max: null },
-       disbursementStatuses: [],
-       referralPartners: [],
-       searchTerm: ''
-     };
-     
-     dashboardState.updateFilters({ [filterKey]: defaultFilters[filterKey as keyof typeof defaultFilters] });
+    const defaultFilters = {
+      dateRange: { startDate: null, endDate: null, preset: 'last30days' },
+      companies: [],
+      paymentMethods: [],
+      revenueSources: [],
+      employees: [],
+      commissionTypes: [],
+      amountRange: { min: null, max: null },
+      disbursementStatuses: [],
+      referralPartners: [],
+      searchTerm: ''
+    };
+    
+    dashboardState.updateFilters({ [filterKey]: defaultFilters[filterKey as keyof typeof defaultFilters] });
   }, [dashboardState]);
 
   // Update specific filter
   const handleUpdateFilter = useCallback((filterKey: keyof typeof dashboardState.filters, value: any) => {
     dashboardState.updateFilters({ [filterKey]: value });
   }, [dashboardState]);
-
-  // Load initial data
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
 
   // Generate breadcrumbs based on current tab
   const breadcrumbs = useMemo(() => {
@@ -231,8 +176,8 @@ const RevenueDashboard: React.FC = () => {
           </div>
         </div>
       }
-             loading={dashboardState.loading}
-       error={dashboardState.error}
+                   loading={false}
+      error={null}
      >
        {/* Dashboard Navigation */}
        <DashboardNavigation
@@ -262,52 +207,15 @@ const RevenueDashboard: React.FC = () => {
 
       {/* Dashboard Content */}
       <ResponsiveContainer>
-        {/* Data Summary */}
+        {/* Welcome Message */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <ResponsiveText
-              mobileSize="text-base"
-              tabletSize="text-lg"
-              desktopSize="text-lg"
-              className="font-medium text-gray-900"
-            >
-              Data Summary
-            </ResponsiveText>
-            <ResponsiveText
-              mobileSize="text-xs"
-              tabletSize="text-sm"
-              desktopSize="text-sm"
-              className="text-gray-500"
-            >
-              {dashboardState.pagination.totalRecords.toLocaleString()} total records
-            </ResponsiveText>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-600">
-                {dashboardState.pagination.totalRecords.toLocaleString()}
-              </div>
-              <div className="text-sm text-blue-600">Total Records</div>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-600">
-                {dashboardState.pagination.totalPages}
-              </div>
-              <div className="text-sm text-green-600">Total Pages</div>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-purple-600">
-                {dashboardState.pagination.pageSize}
-              </div>
-              <div className="text-sm text-purple-600">Page Size</div>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-600">
-                {dashboardState.pagination.currentPage}
-              </div>
-              <div className="text-sm text-orange-600">Current Page</div>
-            </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Welcome to Revenue Analytics Dashboard
+            </h2>
+            <p className="text-gray-600">
+              Select a tab below to view detailed analytics and insights
+            </p>
           </div>
         </div>
 
