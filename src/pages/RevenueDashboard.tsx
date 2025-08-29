@@ -9,7 +9,7 @@ import DashboardNavigation from '../components/dashboard/DashboardNavigation';
 import NavigationHistory from '../components/dashboard/NavigationHistory';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { ResponsiveContainer, ResponsiveText } from '../components/dashboard/ResponsiveDesign';
-import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
+// import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
 
 const RevenueDashboard: React.FC = () => {

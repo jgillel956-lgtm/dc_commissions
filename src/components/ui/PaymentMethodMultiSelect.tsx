@@ -52,7 +52,7 @@ const PaymentMethodMultiSelect: React.FC<PaymentMethodMultiSelectProps> = ({
   const paymentMethodTypes = useMemo(() => {
     const types = paymentMethods
       .map(method => method.type)
-      .filter((type): type is string => !!type);
+      .filter(type => !!type);
     return [...new Set(types)];
   }, [paymentMethods]);
 

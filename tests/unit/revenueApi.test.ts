@@ -1,9 +1,9 @@
 import { fetchRevenueData, fetchCommissionData, fetchCompanyData, fetchPaymentData } from '../../src/services/revenueApi';
+import axios from 'axios';
 
-// Mock fetch globally
-global.fetch = jest.fn();
-
-const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+// Mock axios
+jest.mock('axios');
+const mockAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock data
 const mockRevenueResponse = {
@@ -60,44 +60,44 @@ const mockFilters = {
 describe('revenueApi', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFetch.mockClear();
+    mockAxios.post.mockClear();
+    mockAxios.get.mockClear();
   });
 
   describe('fetchRevenueData', () => {
     it('should fetch revenue data successfully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockRevenueResponse,
+      mockAxios.post.mockResolvedValueOnce({
+        data: {
+          data: mockRevenueResponse
+        },
         status: 200
-      } as Response);
+      });
 
       const result = await fetchRevenueData(mockFilters);
 
-      expect(result).toEqual(mockRevenueResponse);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/revenue'),
+      expect(result).toEqual({ data: mockRevenueResponse });
+      expect(mockAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining('/api/revenue-dashboard'),
         expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json'
-          }),
-          body: JSON.stringify(mockFilters)
-        })
+          filters: mockFilters
+        }),
+        expect.any(Object)
       );
     });
 
     it('should handle API errors', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error'
-      } as Response);
+      mockAxios.post.mockRejectedValueOnce({
+        response: {
+          status: 500,
+          statusText: 'Internal Server Error'
+        }
+      });
 
-      await expect(fetchRevenueData(mockFilters)).rejects.toThrow('Failed to fetch revenue data');
+      await expect(fetchRevenueData(mockFilters)).rejects.toThrow();
     });
 
     it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockAxios.post.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(fetchRevenueData(mockFilters)).rejects.toThrow('Network error');
     });

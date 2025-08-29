@@ -210,9 +210,7 @@ export const useCommissionTypeData = (options: UseCommissionTypeDataOptions = {}
         averageCommissionRate: 0,
         averageCommission: 0,
         totalSelected: 0,
-        totalCommissionRate: 0,
-        totalCommissions: 0,
-        totalTransactions: 0
+        totalCommissionRate: 0
       };
     }
     
@@ -374,17 +372,7 @@ export const useCommissionTypeData = (options: UseCommissionTypeDataOptions = {}
     toggleCategoryFilter,
     clearCategoryFilters,
     getCommissionTypesByCategory,
-    stats,
-    // Additional functions for testing
-    addToSelection: selectCommissionType,
-    removeFromSelection: deselectCommissionType,
-    toggleSelection: toggleCommissionType,
-    clearSelection: deselectAllCommissionTypes,
-    selectAll: selectAllCommissionTypes,
-    addCategoryFilter: (category: string) => setSelectedCategories(prev => [...prev, category]),
-    removeCategoryFilter: (category: string) => setSelectedCategories(prev => prev.filter(c => c !== category)),
-    isSelected: (id: string) => selectedIds.includes(id),
-    loadCommissionTypes
+    stats
   };
 };
 

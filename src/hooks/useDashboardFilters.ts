@@ -14,9 +14,15 @@ const DEFAULT_FILTERS: DashboardFilters = {
     selected_methods: []
   },
   revenue_sources: {
+    transaction_fees: false,
+    payor_fees: false,
+    interest_revenue: false,
     selected_sources: []
   },
   commission_types: {
+    employee_commissions: false,
+    referral_partner_commissions: false,
+    interest_commissions: false,
     selected_types: []
   },
   amount_range: {},
@@ -157,8 +163,18 @@ export const useDashboardFilters = (options: UseDashboardFiltersOptions = {}): U
       date_range: { type: 'last_30_days' },
       companies: { selected_companies: [] },
       payment_methods: { selected_methods: [] },
-      revenue_sources: { selected_sources: [] },
-      commission_types: { selected_types: [] },
+      revenue_sources: { 
+        transaction_fees: false,
+        payor_fees: false,
+        interest_revenue: false,
+        selected_sources: [] 
+      },
+      commission_types: { 
+        employee_commissions: false,
+        referral_partner_commissions: false,
+        interest_commissions: false,
+        selected_types: [] 
+      },
       amount_range: {},
       disbursement_status: [],
       employees: { selected_employees: [] },
@@ -245,41 +261,45 @@ export const useDashboardFilters = (options: UseDashboardFiltersOptions = {}): U
   }, [filters.payment_methods, updateFilters]);
 
   const addRevenueSource = useCallback((sourceId: number) => {
-    if (!filters.revenue_sources.selected_sources.includes(sourceId)) {
+    const currentSources = filters.revenue_sources.selected_sources || [];
+    if (!currentSources.includes(sourceId)) {
       updateFilters({
         revenue_sources: {
           ...filters.revenue_sources,
-          selected_sources: [...filters.revenue_sources.selected_sources, sourceId]
+          selected_sources: [...currentSources, sourceId]
         }
       });
     }
   }, [filters.revenue_sources, updateFilters]);
 
   const removeRevenueSource = useCallback((sourceId: number) => {
+    const currentSources = filters.revenue_sources.selected_sources || [];
     updateFilters({
       revenue_sources: {
         ...filters.revenue_sources,
-        selected_sources: filters.revenue_sources.selected_sources.filter(id => id !== sourceId)
+        selected_sources: currentSources.filter(id => id !== sourceId)
       }
     });
   }, [filters.revenue_sources, updateFilters]);
 
   const addCommissionType = useCallback((type: string) => {
-    if (!filters.commission_types.selected_types.includes(type)) {
+    const currentTypes = filters.commission_types.selected_types || [];
+    if (!currentTypes.includes(type)) {
       updateFilters({
         commission_types: {
           ...filters.commission_types,
-          selected_types: [...filters.commission_types.selected_types, type]
+          selected_types: [...currentTypes, type]
         }
       });
     }
   }, [filters.commission_types, updateFilters]);
 
   const removeCommissionType = useCallback((type: string) => {
+    const currentTypes = filters.commission_types.selected_types || [];
     updateFilters({
       commission_types: {
         ...filters.commission_types,
-        selected_types: filters.commission_types.selected_types.filter(t => t !== type)
+        selected_types: currentTypes.filter(t => t !== type)
       }
     });
   }, [filters.commission_types, updateFilters]);

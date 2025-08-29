@@ -198,7 +198,25 @@ describe('RevenueAnalysisTab', () => {
       data: sampleRevenueData,
       loading: false,
       error: null,
-      filters: {},
+      filters: {
+        date_range: { type: 'last_30_days' },
+        companies: { selected_companies: [] },
+        payment_methods: { selected_methods: [] },
+        revenue_sources: { 
+          transaction_fees: true,
+          payor_fees: false,
+          interest_revenue: false
+        },
+        commission_types: {
+          employee_commissions: true,
+          referral_partner_commissions: false,
+          interest_commissions: false
+        },
+        amount_range: { min_amount: 0, max_amount: 100000 },
+        disbursement_status: [],
+        employees: { selected_employees: [] },
+        referral_partners: { selected_partners: [] }
+      },
       activeTab: 'revenue',
       pagination: { currentPage: 1, pageSize: 50, totalRecords: 2, totalPages: 1 },
       setData: jest.fn(),
@@ -452,7 +470,25 @@ describe('RevenueAnalysisTab', () => {
         data: [],
         loading: true,
         error: null,
-        filters: {},
+        filters: {
+          date_range: { type: 'last_30_days' },
+          companies: { selected_companies: [] },
+          payment_methods: { selected_methods: [] },
+          revenue_sources: { 
+            transaction_fees: true,
+            payor_fees: false,
+            interest_revenue: false
+          },
+          commission_types: {
+            employee_commissions: true,
+            referral_partner_commissions: false,
+            interest_commissions: false
+          },
+          amount_range: { min_amount: 0, max_amount: 100000 },
+          disbursement_status: [],
+          employees: { selected_employees: [] },
+          referral_partners: { selected_partners: [] }
+        },
         activeTab: 'revenue',
         pagination: { currentPage: 1, pageSize: 50, totalRecords: 0, totalPages: 1 },
         setData: jest.fn(),

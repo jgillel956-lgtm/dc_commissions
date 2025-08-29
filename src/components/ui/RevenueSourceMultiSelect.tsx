@@ -58,7 +58,7 @@ const RevenueSourceMultiSelect: React.FC<RevenueSourceMultiSelectProps> = ({
   const revenueSourceTypes = useMemo(() => {
     const types = revenueSources
       .map(source => source.type)
-      .filter((type): type is string => !!type);
+      .filter(type => !!type);
     return [...new Set(types)];
   }, [revenueSources]);
 
@@ -66,7 +66,7 @@ const RevenueSourceMultiSelect: React.FC<RevenueSourceMultiSelectProps> = ({
   const revenueSourceCategories = useMemo(() => {
     const categories = revenueSources
       .map(source => source.category)
-      .filter((category): category is string => !!category);
+      .filter(category => !!category);
     return [...new Set(categories)];
   }, [revenueSources]);
 

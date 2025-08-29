@@ -464,7 +464,7 @@ const LineChart: React.FC<LineChartProps> = ({
                   connectNulls={connectNulls}
                   activeDot={showPoints ? <CustomActiveDot /> : false}
                   dot={showPoints ? { r: 3, fill: CHART_COLORS.primary } : false}
-                  onClick={handleClick}
+                  onClick={undefined}
                   animationDuration={animate ? animationDuration : 0}
                   animationBegin={0}
                 />
@@ -566,7 +566,7 @@ const LineChart: React.FC<LineChartProps> = ({
                   connectNulls={connectNulls}
                   activeDot={showPoints ? <CustomActiveDot /> : false}
                   dot={showPoints ? { r: 3, fill: CHART_COLORS.primary } : false}
-                  onClick={handleClick}
+                  onClick={undefined}
                   animationDuration={animate ? animationDuration : 0}
                   animationBegin={0}
                 />

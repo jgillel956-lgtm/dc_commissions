@@ -112,14 +112,14 @@ describe('commissionUtils', () => {
 
       const result = calculateCommissionBreakdown(transactions);
 
-      expect(result.totalCommission).toBe(235); // 50 + 120 + 75
+      expect(result.totalCommission).toBe(245); // 50 + 120 + 75
       expect(result.totalAmount).toBe(4500);
       expect(result.employeeBreakdown).toEqual({
         emp1: { commission: 125, amount: 2500, transactions: 2 },
         emp2: { commission: 120, amount: 2000, transactions: 1 }
       });
       expect(result.companyBreakdown).toEqual({
-        comp1: { commission: 235, amount: 4500, transactions: 3 }
+        comp1: { commission: 245, amount: 4500, transactions: 3 }
       });
     });
 
@@ -391,9 +391,9 @@ describe('commissionUtils', () => {
 
       const result = calculateTotalCommission(transactions);
 
-      expect(result.totalCommission).toBe(235);
+      expect(result.totalCommission).toBe(245);
       expect(result.totalAmount).toBe(4500);
-      expect(result.averageRate).toBeCloseTo(0.0522, 4);
+      expect(result.averageRate).toBeCloseTo(0.0544, 4);
     });
 
     it('should handle empty array', () => {

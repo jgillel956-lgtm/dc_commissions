@@ -145,7 +145,7 @@ interface ExportData {
 
 const RevenueAnalysisTab: React.FC<RevenueAnalysisTabProps> = ({ className = '' }) => {
   const dashboardState = useDashboardState();
-  const { fetchData, fetchChartData } = useRevenueData();
+  const { data, isLoading, error, refetch } = useRevenueData(dashboardState.filters);
 
   // Drill-down state management
   const [drillDownState, setDrillDownState] = useState<DrillDownState>({
@@ -1451,7 +1451,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                 yAxisDataKey="revenue"
                 showLegend={true}
                 onDataPointClick={handleLineChartClick}
-                enableDrillDown={true}
+                // enableDrillDown={true}
                 ariaLabel="Line chart showing monthly revenue trends for selected company"
                 ariaDescription="Interactive line chart displaying monthly revenue trends for the selected company"
               />
@@ -1472,31 +1472,31 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                 columns={[
                   {
                     key: 'created_at',
-                    title: 'Date',
+                    label: 'Date',
                     sortable: true,
                     render: (value: string) => <span className="text-gray-600">{new Date(value).toLocaleDateString()}</span>,
                   },
                   {
                     key: 'payment_method_description',
-                    title: 'Payment Method',
+                    label: 'Payment Method',
                     sortable: true,
                     render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
                   },
                   {
                     key: 'amount',
-                    title: 'Amount',
+                    label: 'Amount',
                     sortable: true,
                     render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
                   },
                   {
                     key: 'Total_Combined_Revenue',
-                    title: 'Revenue',
+                    label: 'Revenue',
                     sortable: true,
                     render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
                   },
                   {
                     key: 'api_transaction_status',
-                    title: 'Status',
+                    label: 'Status',
                     sortable: true,
                     render: (value: string) => (
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -1659,31 +1659,31 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                 columns={[
                   {
                     key: 'created_at',
-                    title: 'Date',
+                    label: 'Date',
                     sortable: true,
                     render: (value: string) => <span className="text-gray-600">{new Date(value).toLocaleDateString()}</span>,
                   },
                   {
                     key: 'company',
-                    title: 'Company',
+                    label: 'Company',
                     sortable: true,
                     render: (value: string) => <span className="font-medium text-gray-900">{value}</span>,
                   },
                   {
                     key: 'amount',
-                    title: 'Amount',
+                    label: 'Amount',
                     sortable: true,
                     render: (value: number) => <span className="text-green-600 font-medium">{formatCurrency(value)}</span>,
                   },
                   {
                     key: 'Total_Combined_Revenue',
-                    title: 'Revenue',
+                    label: 'Revenue',
                     sortable: true,
                     render: (value: number) => <span className="text-blue-600 font-medium">{formatCurrency(value)}</span>,
                   },
                   {
                     key: 'api_transaction_status',
-                    title: 'Status',
+                    label: 'Status',
                     sortable: true,
                     render: (value: string) => (
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -2058,31 +2058,31 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
               columns={[
                 {
                   key: 'date',
-                  title: 'Date',
+                  label: 'Date',
                   sortable: true,
                   render: (value: string) => <span className="font-medium text-gray-900 text-xs sm:text-sm">{value}</span>,
                 },
                 {
                   key: 'revenue',
-                  title: 'Revenue',
+                  label: 'Revenue',
                   sortable: true,
                   render: (value: number) => <span className="text-green-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'transactions',
-                  title: 'Transactions',
+                  label: 'Transactions',
                   sortable: true,
                   render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatNumber(value)}</span>,
                 },
                 {
                   key: 'revenuePerTransaction',
-                  title: 'Revenue/Transaction',
+                  label: 'Revenue/Transaction',
                   sortable: true,
                   render: (value: number) => <span className="text-blue-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'revenueGrowth',
-                  title: 'Revenue Growth',
+                  label: 'Revenue Growth',
                   sortable: true,
                   render: (value: number) => (
                     <span className={`font-medium text-xs sm:text-sm ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -2092,7 +2092,7 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                 },
                 {
                   key: 'transactionGrowth',
-                  title: 'Transaction Growth',
+                  label: 'Transaction Growth',
                   sortable: true,
                   render: (value: number) => (
                     <span className={`font-medium text-xs sm:text-sm ${value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -2102,19 +2102,19 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
                 },
                 {
                   key: 'movingAverage',
-                  title: '7-Day Moving Avg',
+                  label: '7-Day Moving Avg',
                   sortable: true,
                   render: (value: number) => <span className="text-purple-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'cumulativeRevenue',
-                  title: 'Cumulative Revenue',
+                  label: 'Cumulative Revenue',
                   sortable: true,
                   render: (value: number) => <span className="text-indigo-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
                 },
                 {
                   key: 'successRate',
-                  title: 'Success Rate',
+                  label: 'Success Rate',
                   sortable: true,
                   render: (value: number) => (
                     <span className={`font-medium text-xs sm:text-sm ${value >= 95 ? 'text-green-600' : value >= 90 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -2150,49 +2150,49 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
             columns={[
               {
                 key: 'company',
-                title: 'Company',
+                label: 'Company',
                 sortable: true,
                 render: (value: string) => <span className="font-medium text-gray-900 text-xs sm:text-sm">{value}</span>,
               },
               {
                 key: 'totalRevenue',
-                title: 'Total Revenue',
+                label: 'Total Revenue',
                 sortable: true,
                 render: (value: number) => <span className="text-green-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'transactionCount',
-                title: 'Transactions',
+                label: 'Transactions',
                 sortable: true,
                 render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatNumber(value)}</span>,
               },
               {
                 key: 'transactionVolume',
-                title: 'Transaction Volume',
+                label: 'Transaction Volume',
                 sortable: true,
                 render: (value: number) => <span className="text-purple-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'averageValue',
-                title: 'Avg. Transaction',
+                label: 'Avg. Transaction',
                 sortable: true,
                 render: (value: number) => <span className="text-gray-600 text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'averageRevenuePerTransaction',
-                title: 'Avg. Revenue/Transaction',
+                label: 'Avg. Revenue/Transaction',
                 sortable: true,
                 render: (value: number) => <span className="text-blue-600 font-medium text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'revenueShare',
-                title: 'Revenue Share',
+                label: 'Revenue Share',
                 sortable: true,
                 render: (value: number) => <span className="text-indigo-600 font-medium text-xs sm:text-sm">{formatPercentage(value)}</span>,
               },
               {
                 key: 'revenueEfficiency',
-                title: 'Revenue Efficiency',
+                label: 'Revenue Efficiency',
                 sortable: true,
                 render: (value: number) => (
                   <span className={`font-medium text-xs sm:text-sm ${value >= 5 ? 'text-green-600' : value >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -2202,31 +2202,31 @@ ${data.paymentMethodAnalysis.slice(0, 5).map((method, index) =>
               },
               {
                 key: 'payeeFeeRevenue',
-                title: 'Payee Fees',
+                label: 'Payee Fees',
                 sortable: true,
                 render: (value: number) => <span className="text-blue-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'payorFeeRevenue',
-                title: 'Payor Fees',
+                label: 'Payor Fees',
                 sortable: true,
                 render: (value: number) => <span className="text-green-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'additionalCharges',
-                title: 'Additional Charges',
+                label: 'Additional Charges',
                 sortable: true,
                 render: (value: number) => <span className="text-orange-500 text-xs sm:text-sm">{formatCurrency(value)}</span>,
               },
               {
                 key: 'firstTransactionDate',
-                title: 'First Transaction',
+                label: 'First Transaction',
                 sortable: true,
                 render: (value: string) => <span className="text-gray-600 text-xs sm:text-sm">{value}</span>,
               },
               {
                 key: 'lastTransactionDate',
-                title: 'Last Transaction',
+                label: 'Last Transaction',
                 sortable: true,
                 render: (value: string) => <span className="text-gray-600 text-xs sm:text-sm">{value}</span>,
               },

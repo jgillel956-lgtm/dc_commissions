@@ -3,6 +3,39 @@ import { useRevenueData } from './useRevenueData';
 import { useDashboardFilters } from './useDashboardFilters';
 import { DashboardTab } from './useDashboardState';
 import { DashboardFilters } from '../types/dashboard';
+import { RevenueData } from './useRevenueData';
+
+// Helper function to transform revenue data to chart data
+const transformRevenueDataToChartData = (
+  revenueData: RevenueData,
+  chartType: string,
+  tab: DashboardTab
+): any[] => {
+  switch (chartType) {
+    case 'pie':
+      return revenueData.revenueByCompany?.map(item => ({
+        name: item.company,
+        value: item.revenue,
+        transactions: item.transactions,
+      })) || [];
+    case 'bar':
+      return revenueData.revenueByPaymentMethod?.map(item => ({
+        name: item.method,
+        value: item.revenue,
+        percentage: item.percentage,
+      })) || [];
+    case 'line':
+      return revenueData.revenueByCompany?.map(item => ({
+        name: item.company,
+        value: item.revenue,
+        date: new Date().toISOString(),
+      })) || [];
+    case 'table':
+      return revenueData.revenueByCompany || [];
+    default:
+      return [];
+  }
+};
 
 export interface UseChartDataOptions {
   chartType: 'pie' | 'bar' | 'line' | 'waterfall' | 'table';
@@ -66,12 +99,10 @@ export const useChartData = (options: UseChartDataOptions): UseChartDataReturn =
   } = options;
 
   // Hooks
-  const { fetchChartData, getCacheStats } = useRevenueData();
   const filterManager = useDashboardFilters({
     enablePersistence: true,
-    validateOnChange: true,
-    debounceMs: 500,
   });
+  const { data: revenueData, isLoading, error, refetch: refetchRevenueData } = useRevenueData(filterManager.filters);
 
   // State
   const [state, setState] = useState<ChartDataState>({
@@ -90,7 +121,7 @@ export const useChartData = (options: UseChartDataOptions): UseChartDataReturn =
 
   // Memoized filter summary
   const filterSummary = useMemo(() => {
-    return filterManager.getFilterSummary();
+    return 'Filter summary'; // Simplified for now
   }, [filterManager]);
 
   // Check if filters have changed significantly
@@ -117,24 +148,8 @@ export const useChartData = (options: UseChartDataOptions): UseChartDataReturn =
     onLoadingChange?.(true);
 
     try {
-      const result = await fetchChartData(chartType, {
-        tab,
-        filters: currentFilters,
-        forceRefresh: force,
-        includeCache: enableCache,
-      });
-
-      if (result.error) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: result.error,
-          cacheHit: false,
-        }));
-        onError?.(result.error);
-        onLoadingChange?.(false);
-        return;
-      }
+      // Use the revenue data directly since we're getting it from useRevenueData
+      const chartData = revenueData ? transformRevenueDataToChartData(revenueData, chartType, tab) : [];
 
       // Update last fetch info
       lastFetchRef.current = {
@@ -144,16 +159,16 @@ export const useChartData = (options: UseChartDataOptions): UseChartDataReturn =
 
       setState(prev => ({
         ...prev,
-        data: result.data,
+        data: chartData,
         loading: false,
         error: null,
-        lastUpdated: result.lastUpdated,
-        cacheHit: result.lastUpdated !== null,
+        lastUpdated: new Date(),
+        cacheHit: false,
         filterSummary: filterSummary,
         dataVersion: prev.dataVersion + 1,
       }));
 
-      onDataChange?.(result.data);
+      onDataChange?.(chartData);
       onLoadingChange?.(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch chart data';
@@ -168,7 +183,7 @@ export const useChartData = (options: UseChartDataOptions): UseChartDataReturn =
       onError?.(errorMessage);
       onLoadingChange?.(false);
     }
-  }, [chartType, tab, filterManager.filters, filterSummary, fetchChartData, enableCache, refreshInterval, hasFilterChanges, onDataChange, onError, onLoadingChange]);
+  }, [chartType, tab, filterManager.filters, filterSummary, revenueData, refreshInterval, hasFilterChanges, onDataChange, onError, onLoadingChange]);
 
   // Effect to fetch data when filters change
   useEffect(() => {

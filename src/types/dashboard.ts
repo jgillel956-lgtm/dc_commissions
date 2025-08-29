@@ -118,7 +118,10 @@ export interface PaymentMethodFilter {
  * Revenue source filter
  */
 export interface RevenueSourceFilter {
-  selected_sources: number[];
+  transaction_fees: boolean;
+  payor_fees: boolean;
+  interest_revenue: boolean;
+  selected_sources?: number[];
   search_query?: string;
 }
 
@@ -126,7 +129,10 @@ export interface RevenueSourceFilter {
  * Commission type filter
  */
 export interface CommissionTypeFilter {
-  selected_types: string[];
+  employee_commissions: boolean;
+  referral_partner_commissions: boolean;
+  interest_commissions: boolean;
+  selected_types?: string[];
   search_query?: string;
 }
 
@@ -578,10 +584,16 @@ export const DEFAULT_FILTERS: DashboardFilters = {
     selected_methods: []
   },
   revenue_sources: {
+    transaction_fees: false,
+    payor_fees: false,
+    interest_revenue: false,
     selected_sources: [],
     search_query: ''
   },
   commission_types: {
+    employee_commissions: false,
+    referral_partner_commissions: false,
+    interest_commissions: false,
     selected_types: [],
     search_query: ''
   },

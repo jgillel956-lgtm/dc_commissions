@@ -37,8 +37,18 @@ describe('useDashboardFilters', () => {
         date_range: { type: 'last_30_days' },
         companies: { selected_companies: [] },
         payment_methods: { selected_methods: [] },
-        revenue_sources: { selected_sources: [] },
-        commission_types: { selected_types: [] },
+        revenue_sources: { 
+          transaction_fees: false,
+          payor_fees: false,
+          interest_revenue: false,
+          selected_sources: [] 
+        },
+        commission_types: { 
+          employee_commissions: false,
+          referral_partner_commissions: false,
+          interest_commissions: false,
+          selected_types: [] 
+        },
         amount_range: {},
         disbursement_status: [],
         employees: { selected_employees: [] },
@@ -88,8 +98,18 @@ describe('useDashboardFilters', () => {
         date_range: { type: 'last_30_days' },
         companies: { selected_companies: [] },
         payment_methods: { selected_methods: [] },
-        revenue_sources: { selected_sources: [] },
-        commission_types: { selected_types: [] },
+        revenue_sources: { 
+          transaction_fees: false,
+          payor_fees: false,
+          interest_revenue: false,
+          selected_sources: [] 
+        },
+        commission_types: { 
+          employee_commissions: false,
+          referral_partner_commissions: false,
+          interest_commissions: false,
+          selected_types: [] 
+        },
         amount_range: {},
         disbursement_status: [],
         employees: { selected_employees: [] },
@@ -308,7 +328,14 @@ describe('useDashboardFilters', () => {
 
     it('should remove revenue source', async () => {
       const { result } = renderHook(() => useDashboardFilters({
-        initialFilters: { revenue_sources: { selected_sources: [100, 200, 300] } }
+        initialFilters: { 
+          revenue_sources: { 
+            transaction_fees: false,
+            payor_fees: false,
+            interest_revenue: false,
+            selected_sources: [100, 200, 300] 
+          } 
+        }
       }));
 
       await act(async () => {
@@ -334,7 +361,14 @@ describe('useDashboardFilters', () => {
 
     it('should remove commission type', async () => {
       const { result } = renderHook(() => useDashboardFilters({
-        initialFilters: { commission_types: { selected_types: ['employee', 'referral', 'interest'] } }
+        initialFilters: { 
+          commission_types: { 
+            employee_commissions: false,
+            referral_partner_commissions: false,
+            interest_commissions: false,
+            selected_types: ['employee', 'referral', 'interest'] 
+          } 
+        }
       }));
 
       await act(async () => {

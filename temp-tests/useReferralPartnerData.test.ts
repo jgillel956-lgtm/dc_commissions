@@ -1,6 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useReferralPartnerData } from './useReferralPartnerData';
 import * as referralPartnerApi from '../services/referralPartnerApi';
+import { ReferralPartner } from '../services/referralPartnerApi';
 
 // Mock the referral partner API
 jest.mock('../services/referralPartnerApi', () => ({
@@ -18,7 +19,7 @@ jest.mock('../services/referralPartnerApi', () => ({
 const mockedReferralPartnerApi = referralPartnerApi as jest.Mocked<typeof referralPartnerApi>;
 
 // Mock referral partners for testing
-const mockReferralPartners = [
+const mockReferralPartners: ReferralPartner[] = [
   {
     id: '1',
     name: 'ABC Financial Services',

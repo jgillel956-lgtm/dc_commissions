@@ -131,13 +131,13 @@ const changeUserStatus = async (id: number, status: 'active' | 'inactive'): Prom
 };
 
 // React Query keys
-const userKeys = {
-  all: ['users'] as const,
-  lists: () => [...userKeys.all, 'list'] as const,
-  list: (filters: string) => [...userKeys.lists(), { filters }] as const,
-  details: () => [...userKeys.all, 'detail'] as const,
-  detail: (id: number) => [...userKeys.details(), id] as const,
-};
+  const userKeys = {
+    all: ['users'] as const,
+    lists: () => ['users', 'list'] as const,
+    list: (filters: string) => ['users', 'list', { filters }] as const,
+    details: () => ['users', 'detail'] as const,
+    detail: (id: number) => ['users', 'detail', id] as const,
+  };
 
 export const useUsers = () => {
   return useQuery({

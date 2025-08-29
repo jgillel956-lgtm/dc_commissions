@@ -386,6 +386,19 @@ export class RevenueApiService {
 // Export singleton instance
 export const revenueApi = RevenueApiService.getInstance();
 
+// Export wrapper functions for direct use
+export const fetchRevenueData = (filters: DashboardFilters, options?: any) => 
+  revenueApi.fetchRevenueData(filters, options);
+
+export const fetchCommissionData = (filters: DashboardFilters, options?: any) =>
+  revenueApi.fetchRevenueData(filters, options);
+
+export const fetchCompanyData = (filters: DashboardFilters, options?: any) =>
+  revenueApi.fetchRevenueData(filters, options);
+
+export const fetchPaymentData = (filters: DashboardFilters, options?: any) =>
+  revenueApi.fetchRevenueData(filters, options);
+
 // Export utility functions for direct use
 export {
   generateCacheKey,

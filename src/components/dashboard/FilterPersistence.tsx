@@ -87,7 +87,7 @@ const FilterPersistence: React.FC<FilterPersistenceProps> = ({
     }
 
     // Revenue sources filter
-    if (filters.revenue_sources.selected_sources.length > 0) {
+    if (filters.revenue_sources?.selected_sources && filters.revenue_sources.selected_sources.length > 0) {
       activeFiltersList.push({
         key: 'revenue_sources',
         label: 'Revenue Sources',
@@ -113,7 +113,7 @@ const FilterPersistence: React.FC<FilterPersistenceProps> = ({
     }
 
     // Commission types filter
-    if (filters.commission_types.selected_types.length > 0) {
+    if (filters.commission_types?.selected_types && filters.commission_types.selected_types.length > 0) {
       activeFiltersList.push({
         key: 'commission_types',
         label: 'Commission Types',

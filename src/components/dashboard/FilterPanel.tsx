@@ -192,13 +192,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
     if (filters.payment_methods?.selected_methods?.length > 0) count++;
     
     // Revenue sources
-    if (filters.revenue_sources?.selected_sources?.length > 0) count++;
+    if (filters.revenue_sources?.selected_sources && filters.revenue_sources.selected_sources.length > 0) count++;
     
     // Employees
     if (filters.employees?.selected_employees?.length > 0) count++;
     
     // Commission types
-    if (filters.commission_types?.selected_types?.length > 0) count++;
+    if (filters.commission_types?.selected_types && filters.commission_types.selected_types.length > 0) count++;
     
     // Amount range
     if (filters.amount_range?.min_amount !== undefined || filters.amount_range?.max_amount !== undefined) {
