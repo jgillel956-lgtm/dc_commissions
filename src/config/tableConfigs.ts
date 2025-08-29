@@ -90,6 +90,21 @@ export const paymentModalitiesSchema = yup.object({
   active: yup.boolean().required('Active status is required')
 });
 
+export const monthlyInterchangeIncomeSchema = yup.object({
+  company_id: yup.number().required('Company is required'),
+  interchange_company: yup.string().required('Interchange company is required'),
+  interchange_amount: yup.number().min(0, 'Interchange amount must be positive').required('Interchange amount is required'),
+  invoice_number: yup.string().required('Invoice number is required'),
+  payment_date: yup.date().required('Payment date is required'),
+  transaction_period_start: yup.date().required('Transaction period start is required'),
+  transaction_period_end: yup.date().required('Transaction period end is required'),
+  transaction_count: yup.number().min(0, 'Transaction count must be positive').nullable(),
+  interchange_rate: yup.number().min(0, 'Interchange rate must be positive').nullable(),
+  notes: yup.string().required('Notes are required'),
+  posted_date: yup.date().required('Posted date is required'),
+  active: yup.boolean().required('Active status is required')
+});
+
 // Table configurations
 export const tableConfigs: Record<string, TableConfig> = {
   company_upcharge_fees_DC: {
@@ -465,6 +480,102 @@ export const tableConfigs: Record<string, TableConfig> = {
       }
     ],
     displayColumns: ['payment_method', 'description', 'active']
+  },
+
+  monthly_interchange_income_DC: {
+    name: 'Monthly Interchange Income',
+    icon: TrendingUp,
+    tableName: 'monthly_interchange_income_DC',
+    tableId: '2103833000018129022',
+    fields: [
+      {
+        key: 'company_id',
+        label: 'Company',
+        type: 'select',
+        required: true,
+        lookupTable: 'insurance_companies_DC',
+        lookupValueField: 'id',
+        lookupDisplayField: 'company'
+      },
+      {
+        key: 'interchange_company',
+        label: 'Interchange Company',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter interchange company name'
+      },
+      {
+        key: 'interchange_amount',
+        label: 'Interchange Amount',
+        type: 'currency',
+        required: true,
+        min: 0,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'invoice_number',
+        label: 'Invoice Number',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter invoice number'
+      },
+      {
+        key: 'payment_date',
+        label: 'Payment Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_period_start',
+        label: 'Transaction Period Start',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_period_end',
+        label: 'Transaction Period End',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'transaction_count',
+        label: 'Transaction Count',
+        type: 'number',
+        required: false,
+        min: 0,
+        placeholder: 'Enter transaction count'
+      },
+      {
+        key: 'interchange_rate',
+        label: 'Interchange Rate',
+        type: 'percentage',
+        required: false,
+        min: 0,
+        step: 0.0001,
+        placeholder: '0.0000'
+      },
+      {
+        key: 'notes',
+        label: 'Notes',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter notes'
+      },
+      {
+        key: 'posted_date',
+        label: 'Posted Date',
+        type: 'date',
+        required: true
+      },
+      {
+        key: 'active',
+        label: 'Active',
+        type: 'toggle',
+        required: true
+      }
+    ],
+    displayColumns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active']
   }
 };
 
@@ -655,6 +766,7 @@ export const validationSchemas: Record<string, any> = {
   company_upcharge_fees_DC: companyUpchargeFeeSchema,
   employee_commissions_DC: employeeCommissionSchema,
   monthly_interest_revenue_DC: monthlyInterestRevenueSchema,
+  monthly_interchange_income_DC: monthlyInterchangeIncomeSchema,
   referral_partners_DC: referralPartnerSchema,
   vendor_costs_DC: vendorCostsSchema,
   payment_type_DC: paymentModalitiesSchema
@@ -665,6 +777,7 @@ export const defaultSorts = {
   company_upcharge_fees_DC: { field: 'effective_start_date', order: 'desc' as const },
   employee_commissions_DC: { field: 'employee_name', order: 'asc' as const },
   monthly_interest_revenue_DC: { field: 'posted_date', order: 'desc' as const },
+  monthly_interchange_income_DC: { field: 'payment_date', order: 'desc' as const },
   referral_partners_DC: { field: 'partner_name', order: 'asc' as const },
   vendor_costs_DC: { field: 'date', order: 'desc' as const },
   payment_type_DC: { field: 'payment_method', order: 'asc' as const },
@@ -701,5 +814,10 @@ export const exportConfigs = {
     filename: 'payment-types-export',
     columns: ['payment_method', 'description', 'active'],
     headers: ['Payment Method', 'Description', 'Active'],
+  },
+  monthly_interchange_income_DC: {
+    filename: 'monthly-interchange-income-export',
+    columns: ['company_name', 'interchange_company', 'interchange_amount', 'invoice_number', 'payment_date', 'transaction_count', 'interchange_rate', 'active'],
+    headers: ['Company', 'Interchange Company', 'Interchange Amount', 'Invoice Number', 'Payment Date', 'Transaction Count', 'Interchange Rate', 'Active'],
   },
 };
