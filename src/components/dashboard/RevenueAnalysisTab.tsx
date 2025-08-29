@@ -17,7 +17,10 @@ const RevenueAnalysisTab: React.FC = () => {
 
   // Process commission data to create analytics
   const processedData = React.useMemo(() => {
+    console.log('Commission data received:', commissionData);
+    
     if (!commissionData?.data || commissionData.data.length === 0) {
+      console.log('No commission data found');
       return null;
     }
 
@@ -71,7 +74,7 @@ const RevenueAnalysisTab: React.FC = () => {
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading commission data from Zoho Analytics...</p>
+          <p className="text-gray-600">🚀 Fetching fresh dashboard data...</p>
         </div>
       </div>
     );
@@ -103,23 +106,34 @@ const RevenueAnalysisTab: React.FC = () => {
     );
   }
 
-  if (!processedData) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">No data available</h3>
-            <p className="text-sm text-yellow-700 mt-1">No commission data found in the Zoho Analytics workspace.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+           if (!processedData) {
+           return (
+             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+               <div className="flex items-center">
+                 <div className="flex-shrink-0">
+                   <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                   </svg>
+                 </div>
+                 <div className="ml-3">
+                   <h3 className="text-sm font-medium text-blue-800">No commission data found</h3>
+                   <p className="text-sm text-blue-700 mt-1">
+                     The <code>employee_commissions_DC</code> table in your Zoho Analytics workspace appears to be empty. 
+                     Please add some commission data to see analytics here.
+                   </p>
+                   <div className="mt-3">
+                     <button
+                       onClick={() => refetch()}
+                       className="bg-blue-100 text-blue-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-200"
+                     >
+                       Refresh Data
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           );
+         }
 
   return (
     <div className="space-y-6">
