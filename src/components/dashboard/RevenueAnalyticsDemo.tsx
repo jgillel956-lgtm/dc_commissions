@@ -1,18 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  useRevenueAnalytics, 
-  useRevenueChartData, 
-  useEmployeeCommissionData,
-  useCompanyRevenueData,
-  usePaymentMethodRevenueData,
-  useRefreshRevenueAnalytics,
-  useRevenueAnalyticsWithErrorHandling,
-  useAllRevenueData // ⚡ NEW: Use this instead of multiple hooks
+  useAllRevenueData // ⚡ OPTIMIZED: Single hook for all revenue data (no more API storm!)
 } from '../../hooks/useRevenueAnalytics';
 
-// ⚠️ WARNING: This component causes API storm by using multiple hooks
-// TODO: Replace multiple hooks with single useAllRevenueData() hook
-// Current issue: Each hook makes separate API calls = 5+ duplicate requests
+// ✅ FIXED: Now uses consolidated data fetching - only 1 API call instead of 5+!
 import { RevenueAnalyticsQueryParams } from '../../types/revenueAnalytics';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
@@ -30,31 +21,38 @@ const RevenueAnalyticsDemo: React.FC = () => {
     }
   });
 
-  // Main revenue analytics data
+  // ⚡ OPTIMIZED: Single API call for all data (replaces 5+ separate hooks)
   const { 
-    data: analyticsData, 
-    isLoading: analyticsLoading, 
-    error: analyticsError,
-    refetch: refetchAnalytics 
-  } = useRevenueAnalyticsWithErrorHandling(filters);
+    data: allRevenueData, 
+    isLoading: allDataLoading, 
+    error: allDataError,
+    refetch: refetchAllData 
+  } = useAllRevenueData(filters);
 
-  // Chart data
-  const { data: chartData, isLoading: chartLoading } = useRevenueChartData(filters);
+  // Extract data from consolidated response
+  const analyticsData = allRevenueData?.analytics;
+  const chartData = allRevenueData?.chartData || [];
+  const employeeData = allRevenueData?.employeeData || [];
+  const companyData = allRevenueData?.companyData || [];
   
-  // Employee commission data
-  const { data: employeeData, isLoading: employeeLoading } = useEmployeeCommissionData(filters);
+  // Use single loading state for all data
+  const analyticsLoading = allDataLoading;
+  const chartLoading = allDataLoading;
+  const employeeLoading = allDataLoading;
+  const companyLoading = allDataLoading;
+  const analyticsError = allDataError;
+  const refetchAnalytics = refetchAllData;
   
-  // Company revenue data
-  const { data: companyData, isLoading: companyLoading } = useCompanyRevenueData(filters);
-  
-  // Payment method revenue data
-  const { data: paymentMethodData, isLoading: paymentMethodLoading } = usePaymentMethodRevenueData(filters);
+  // Payment method revenue data (from consolidated response)
+  const paymentMethodData = allRevenueData?.paymentMethodData || [];
+  const paymentMethodLoading = allDataLoading;
 
-  // Refresh functionality
-  const { mutate: refreshData, isPending: isRefreshing } = useRefreshRevenueAnalytics();
+  // Simplified refresh functionality
+  const refreshData = () => refetchAllData();
+  const isRefreshing = allDataLoading;
 
   const handleRefresh = () => {
-    refreshData(filters);
+    refreshData();
   };
 
   const handleDateRangeChange = (start: string, end: string) => {
