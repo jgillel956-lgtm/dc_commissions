@@ -50,30 +50,62 @@ const RevenueAnalysisTab: React.FC = () => {
     console.log(`📊 Processing ${rows.length} commission records`);
 
     // Transform raw data into commission calculation format
-    const commissionTransactions = rows.map(row => ({
-      amount: parseFloat(row.commission_amount || '0') || 0,
-      commissionRate: (parseFloat(row.commission_percentage || '0') || 0) / 100,
-      employeeId: row.employee_id || row.employee_name || 'Unknown',
-      companyId: row.company_id || 'Unknown',
-      date: row.effective_start_date,
-      employeeName: row.employee_name || 'Unknown Employee',
-      companyName: `Company ${row.company_id || 'Unknown'}`,
-      description: row.description || 'Commission'
-    })).filter(t => t.amount > 0); // Only include transactions with positive amounts
+    const commissionTransactions = rows.map((row, index) => {
+      const amount = parseFloat(row.commission_amount || '0') || 0;
+      const commissionRate = (parseFloat(row.commission_percentage || '0') || 0) / 100;
+      
+      // DEBUG: Log raw data structure for first few rows
+      if (index < 3) {
+        console.log(`🔍 Row ${index} raw data:`, {
+          commission_amount: row.commission_amount,
+          commission_percentage: row.commission_percentage,
+          employee_id: row.employee_id,
+          employee_name: row.employee_name,
+          company_id: row.company_id,
+          effective_start_date: row.effective_start_date,
+          parsed_amount: amount,
+          parsed_rate: commissionRate,
+          all_fields: Object.keys(row)
+        });
+      }
+      
+      return {
+        amount,
+        commissionRate,
+        employeeId: row.employee_id || row.employee_name || 'Unknown',
+        companyId: row.company_id || 'Unknown',
+        date: row.effective_start_date,
+        employeeName: row.employee_name || 'Unknown Employee',
+        companyName: `Company ${row.company_id || 'Unknown'}`,
+        description: row.description || 'Commission'
+      };
+    });
+    
+    // DEBUG: Log before filtering
+    console.log(`🔍 Before filtering: ${commissionTransactions.length} transactions`);
+    commissionTransactions.slice(0, 3).forEach((t, i) => {
+      console.log(`🔍 Transaction ${i}:`, { amount: t.amount, employeeName: t.employeeName });
+    });
+    
+    const filteredTransactions = commissionTransactions.filter(t => t.amount > 0);
+    
+    // DEBUG: Log after filtering
+    console.log(`💰 After filtering (amount > 0): ${filteredTransactions.length} transactions`);
 
-    console.log(`💰 Found ${commissionTransactions.length} valid commission transactions`);
+    console.log(`💰 Found ${filteredTransactions.length} valid commission transactions`);
 
-    if (commissionTransactions.length === 0) {
+    if (filteredTransactions.length === 0) {
+      console.log(`❌ No valid commission transactions found after filtering`);
       return null;
     }
 
     // Calculate comprehensive commission breakdown
-    const breakdown = calculateCommissionBreakdown(commissionTransactions);
-    const totalCalculation = calculateTotalCommission(commissionTransactions);
+    const breakdown = calculateCommissionBreakdown(filteredTransactions);
+    const totalCalculation = calculateTotalCommission(filteredTransactions);
 
     // Group by employee for detailed analysis
     const employeeAnalysis = Object.entries(breakdown.employeeBreakdown).map(([employeeId, data]) => {
-      const employeeRecord = commissionTransactions.find(t => t.employeeId === employeeId);
+      const employeeRecord = filteredTransactions.find(t => t.employeeId === employeeId);
       return {
         employeeId,
         employeeName: employeeRecord?.employeeName || employeeId,

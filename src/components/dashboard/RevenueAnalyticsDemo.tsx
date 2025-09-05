@@ -6,8 +6,13 @@ import {
   useCompanyRevenueData,
   usePaymentMethodRevenueData,
   useRefreshRevenueAnalytics,
-  useRevenueAnalyticsWithErrorHandling
+  useRevenueAnalyticsWithErrorHandling,
+  useAllRevenueData // ⚡ NEW: Use this instead of multiple hooks
 } from '../../hooks/useRevenueAnalytics';
+
+// ⚠️ WARNING: This component causes API storm by using multiple hooks
+// TODO: Replace multiple hooks with single useAllRevenueData() hook
+// Current issue: Each hook makes separate API calls = 5+ duplicate requests
 import { RevenueAnalyticsQueryParams } from '../../types/revenueAnalytics';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 

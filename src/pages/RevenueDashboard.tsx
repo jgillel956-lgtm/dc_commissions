@@ -143,7 +143,15 @@ const RevenueDashboard: React.FC = () => {
         );
 
       case 'analytics-demo':
-        return <RevenueAnalyticsDemo />;
+        // TEMPORARILY DISABLED: RevenueAnalyticsDemo causing API storm (16+ duplicate requests)
+        // TODO: Fix multiple hook API calls before re-enabling
+        return (
+          <div className="p-8 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Demo Temporarily Disabled</h3>
+            <p className="text-gray-600">This component is being optimized to fix performance issues.</p>
+          </div>
+        );
+        // return <RevenueAnalyticsDemo />;
 
       default:
         return null;
