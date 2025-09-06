@@ -14,6 +14,11 @@ export interface Employee {
   id?: number;
   name: string;
   status?: 'active' | 'inactive';
+  email?: string;
+  employee_id?: string;
+  department?: string;
+  role?: string;
+  commission_rate?: number;
 }
 
 export interface CompanyApiResponse {
@@ -203,23 +208,39 @@ export const mockSearchCompanies = (searchTerm: string): Company[] => {
  */
 export const fetchEmployeesFromRevenueView = async (): Promise<Employee[]> => {
   try {
-    const response = await zohoAnalyticsAPI.getDistinctEmployees();
+    const query = `
+      SELECT DISTINCT 
+        employee_name,
+        employee_id,
+        department,
+        role,
+        commission_percentage as commission_rate,
+        email
+      FROM revenue_master_view 
+      WHERE employee_name IS NOT NULL 
+        AND employee_name != '' 
+      ORDER BY employee_name
+    `;
     
+    const response = await zohoAnalyticsAPI.executeQuery(query);
     if (response.status.code === 200 && response.data) {
-      // Transform Zoho Analytics response to Employee interface
-      return response.data.map((item, index) => ({
-        id: index + 1, // Generate ID since employee_name doesn't have ID
+      return response.data.map((item: any, index: number) => ({
+        id: index + 1,
         name: item.employee_name,
-        status: 'active' as const
+        status: 'active' as const,
+        email: item.email || `${item.employee_name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+        employee_id: item.employee_id || `EMP${String(index + 1).padStart(3, '0')}`,
+        department: item.department || 'Not Specified',
+        role: item.role || 'Employee',
+        commission_rate: item.commission_rate || 0
       }));
     } else {
-      console.warn('Zoho Analytics employee response not successful, falling back to mock data');
-      return getMockEmployees();
+      console.warn('No employee data returned from Zoho Analytics');
+      return [];
     }
   } catch (error) {
     console.error('Error fetching employees from revenue_master_view:', error);
-    // Fallback to mock data
-    return getMockEmployees();
+    return [];
   }
 };
 
@@ -231,7 +252,7 @@ export const fetchAllEmployees = async (): Promise<Employee[]> => {
     return await fetchEmployeesFromRevenueView();
   } catch (error) {
     console.error('Error fetching all employees:', error);
-    return getMockEmployees();
+    return [];
   }
 };
 
@@ -244,13 +265,15 @@ export const searchEmployees = async (searchTerm: string): Promise<Employee[]> =
     if (!searchTerm) return employees;
     
     return employees.filter(employee => 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.email && employee.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (employee.employee_id && employee.employee_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (employee.department && employee.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (employee.role && employee.role.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   } catch (error) {
     console.error('Error searching employees:', error);
-    return getMockEmployees().filter(employee => 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return [];
   }
 };
 
@@ -258,15 +281,27 @@ export const searchEmployees = async (searchTerm: string): Promise<Employee[]> =
  * Mock employee data for development/testing
  */
 export const getMockEmployees = (): Employee[] => [
-  { id: 1, name: 'John Smith', status: 'active' },
-  { id: 2, name: 'Jane Doe', status: 'active' },
-  { id: 3, name: 'Bob Wilson', status: 'active' },
-  { id: 4, name: 'Sarah Johnson', status: 'active' },
-  { id: 5, name: 'Mike Davis', status: 'active' },
-  { id: 6, name: 'Lisa Brown', status: 'active' },
-  { id: 7, name: 'Tom Anderson', status: 'active' },
-  { id: 8, name: 'Amy Taylor', status: 'active' }
+  { id: 1, name: 'John Smith', status: 'active', email: 'john.smith@company.com', employee_id: 'EMP001', department: 'Sales', role: 'Sales Manager', commission_rate: 5.5 },
+  { id: 2, name: 'Jane Doe', status: 'active', email: 'jane.doe@company.com', employee_id: 'EMP002', department: 'Sales', role: 'Sales Representative', commission_rate: 3.0 },
+  { id: 3, name: 'Bob Wilson', status: 'active', email: 'bob.wilson@company.com', employee_id: 'EMP003', department: 'Operations', role: 'Operations Manager', commission_rate: 2.0 },
+  { id: 4, name: 'Sarah Johnson', status: 'active', email: 'sarah.johnson@company.com', employee_id: 'EMP004', department: 'Customer Service', role: 'Support Specialist', commission_rate: 1.5 },
+  { id: 5, name: 'Mike Davis', status: 'active', email: 'mike.davis@company.com', employee_id: 'EMP005', department: 'Sales', role: 'Sales Representative', commission_rate: 3.0 },
+  { id: 6, name: 'Lisa Brown', status: 'active', email: 'lisa.brown@company.com', employee_id: 'EMP006', department: 'Operations', role: 'Operations Specialist', commission_rate: 2.0 },
+  { id: 7, name: 'Tom Anderson', status: 'active', email: 'tom.anderson@company.com', employee_id: 'EMP007', department: 'Sales', role: 'Sales Director', commission_rate: 7.0 },
+  { id: 8, name: 'Amy Taylor', status: 'active', email: 'amy.taylor@company.com', employee_id: 'EMP008', department: 'Customer Service', role: 'Customer Success Manager', commission_rate: 2.5 }
 ];
+
+/**
+ * Mock search function for development
+ */
+export const mockSearchEmployees = (searchTerm: string): Employee[] => {
+  const employees = getMockEmployees();
+  if (!searchTerm) return employees;
+  
+  return employees.filter(employee => 
+    employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+};
 
 
 

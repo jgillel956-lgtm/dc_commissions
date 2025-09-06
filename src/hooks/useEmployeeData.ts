@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Employee, fetchAllEmployees, searchEmployees, getMockEmployees, mockSearchEmployees } from '../services/employeeApi';
+import { Employee, fetchAllEmployees, searchEmployees, getMockEmployees, mockSearchEmployees } from '../services/companyApi';
 
 export interface UseEmployeeDataReturn {
   // Employee data
@@ -75,7 +75,7 @@ export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmploy
   const {
     initialSelectedIds = [],
     enableSearch = true,
-    useMockData = true, // Use mock data for development
+    useMockData = false, // Use real data from revenue_master_view
     autoLoad = true
   } = options;
 
@@ -101,16 +101,8 @@ export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmploy
     setError(null);
     
     try {
-      let employeeData: Employee[];
-      
-      if (useMockData) {
-        // Use mock data for development
-        employeeData = getMockEmployees();
-      } else {
-        // Use real API
-        employeeData = await fetchAllEmployees();
-      }
-      
+      // Always use real API data from revenue_master_view
+      const employeeData = await fetchAllEmployees();
       setEmployees(employeeData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load employees');
@@ -118,7 +110,7 @@ export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmploy
     } finally {
       setLoading(false);
     }
-  }, [useMockData]);
+  }, []);
 
   // Search employees
   const performSearch = useCallback(async (term: string) => {
@@ -131,16 +123,8 @@ export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmploy
     setIsSearching(true);
     
     try {
-      let results: Employee[];
-      
-      if (useMockData) {
-        // Use mock search for development
-        results = mockSearchEmployees(term);
-      } else {
-        // Use real API search
-        results = await searchEmployees(term);
-      }
-      
+      // Always use real API search from revenue_master_view
+      const results = await searchEmployees(term);
       setSearchResults(results);
     } catch (err) {
       console.error('Error searching employees:', err);
@@ -148,7 +132,7 @@ export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmploy
     } finally {
       setIsSearching(false);
     }
-  }, [enableSearch, useMockData]);
+  }, [enableSearch]);
 
   // Debounced search effect
   useEffect(() => {

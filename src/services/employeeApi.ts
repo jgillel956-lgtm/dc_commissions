@@ -1,8 +1,11 @@
-import { Employee, fetchAllEmployees, searchEmployees, getMockEmployees } from './companyApi';
+import { fetchAllEmployees, searchEmployees, getMockEmployees } from './companyApi';
+import type { Employee } from './companyApi';
+
+// Export type separately to satisfy TypeScript isolatedModules
+export type { Employee } from './companyApi';
 
 // Export all employee-related functions from companyApi
 export {
-  Employee,
   fetchAllEmployees,
   searchEmployees,
   getMockEmployees
