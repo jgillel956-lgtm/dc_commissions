@@ -393,11 +393,31 @@ class ZohoAnalyticsAPI {
     }
   }
 
-  // Get distinct companies from revenue_master_view
+  // Get distinct companies from revenue_master_view via backend proxy
   async getDistinctCompanies(): Promise<ZohoAnalyticsResponse<Array<{company_id: number, company: string}>>> {
     try {
-      const query = `SELECT DISTINCT company_id, company FROM revenue_master_view WHERE company IS NOT NULL AND company != '' ORDER BY company`;
-      return await this.executeQuery(query);
+      // Use backend API proxy to avoid CORS issues
+      const response = await axios.post('/api/zoho-analytics', {
+        tableName: 'revenue_master_view',
+        action: 'query',
+        query: `SELECT DISTINCT company_id, company FROM revenue_master_view WHERE company IS NOT NULL AND company != '' ORDER BY company`
+      });
+      
+      // Transform backend response to expected format
+      if (response.data && Array.isArray(response.data.rows)) {
+        return {
+          status: {
+            code: 200,
+            message: 'Success'
+          },
+          data: response.data.rows.map((row: any) => ({
+            company_id: row.company_id || row['Company ID'] || 0,
+            company: row.company || row['Company'] || ''
+          }))
+        };
+      }
+      
+      throw new Error('Invalid response format from backend');
     } catch (error) {
       console.error('Error fetching distinct companies:', error);
       // Return mock data as fallback
@@ -415,11 +435,30 @@ class ZohoAnalyticsAPI {
     }
   }
 
-  // Get distinct employee names (commission persons) from revenue_master_view
+  // Get distinct employee names (commission persons) from revenue_master_view via backend proxy  
   async getDistinctEmployees(): Promise<ZohoAnalyticsResponse<Array<{employee_name: string}>>> {
     try {
-      const query = `SELECT DISTINCT employee_name FROM revenue_master_view WHERE employee_name IS NOT NULL AND employee_name != '' ORDER BY employee_name`;
-      return await this.executeQuery(query);
+      // Use backend API proxy to avoid CORS issues
+      const response = await axios.post('/api/zoho-analytics', {
+        tableName: 'revenue_master_view',
+        action: 'query',
+        query: `SELECT DISTINCT employee_name FROM revenue_master_view WHERE employee_name IS NOT NULL AND employee_name != '' ORDER BY employee_name`
+      });
+      
+      // Transform backend response to expected format
+      if (response.data && Array.isArray(response.data.rows)) {
+        return {
+          status: {
+            code: 200,
+            message: 'Success'
+          },
+          data: response.data.rows.map((row: any) => ({
+            employee_name: row.employee_name || row['Employee Name'] || ''
+          }))
+        };
+      }
+      
+      throw new Error('Invalid response format from backend');
     } catch (error) {
       console.error('Error fetching distinct employees:', error);
       // Return mock data as fallback

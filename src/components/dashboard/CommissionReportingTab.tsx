@@ -36,6 +36,7 @@ const CommissionReportingTab: React.FC = () => {
   const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ startDate: null, endDate: null });
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<number[]>([]);
   const [viewMode, setViewMode] = useState<'summary' | 'details' | 'both'>('both');
 
   // Fetch company and employee data for filters

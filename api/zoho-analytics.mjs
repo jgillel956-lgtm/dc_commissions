@@ -33,7 +33,8 @@ const TABLE_IDS = {
   'referral_partners_DC': '2103833000016814002',
   'insurance_companies_DC': '2103833000004379120',
   'vendor_costs_DC': '2103833000016817002',
-  'payment_modalities': '2103833000011978002'
+  'payment_modalities': '2103833000011978002',
+  'revenue_master_view': 'revenue_master_view' // This is likely a view, not a table with numeric ID
 };
 
 export default async function handler(req, res) {
@@ -45,7 +46,6 @@ export default async function handler(req, res) {
 
   // Parse body early for all endpoints
   let body = req.body;
-  if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
   if (!body || Object.keys(body).length === 0) {
     body = {
       tableName: req.query.tableName,
@@ -579,7 +579,45 @@ export default async function handler(req, res) {
     }
   }
 
-  const { tableName, action, data, params } = req.body || {};
+  const { tableName, action, data, params, query } = req.body || {};
+  
+  // Handle SQL query endpoint
+  if (query && !tableName) {
+    try {
+      const refreshToken = process.env.ZOHO_REFRESH_TOKEN || process.env.REACT_APP_ZOHO_REFRESH_TOKEN;
+      const clientId = process.env.ZOHO_CLIENT_ID || process.env.REACT_APP_ZOHO_CLIENT_ID;
+      const clientSecret = process.env.ZOHO_CLIENT_SECRET || process.env.REACT_APP_ZOHO_CLIENT_SECRET;
+      const workspaceId = process.env.ZOHO_WORKSPACE_ID || process.env.REACT_APP_ZOHO_WORKSPACE_ID;
+      const orgId = process.env.ZOHO_ORG_ID || process.env.REACT_APP_ZOHO_ORG_ID;
+      
+      if (!refreshToken || !clientId || !clientSecret || !workspaceId || !orgId) {
+        return res.status(500).json({ error: "Zoho Analytics credentials not configured" });
+      }
+      
+      const cfg = { refreshToken, clientId, clientSecret };
+      const token = await getAccessTokenShared(cfg);
+      
+      const response = await axios.post(`${BASE_URL}/workspaces/${workspaceId}/data`, {
+        responseFormat: 'json',
+        outputFormat: 'json',
+        query: query
+      }, {
+        headers: headersFor(token, orgId)
+      });
+      
+      return res.status(200).json({ 
+        rows: response.data?.data || [],
+        success: true 
+      });
+    } catch (error) {
+      console.error('SQL Query error:', error.response?.data || error.message);
+      return res.status(error.response?.status || 500).json({
+        error: "SQL query failed",
+        details: error.response?.data || error.message
+      });
+    }
+  }
+  
   if (!tableName) return res.status(400).json({ error: "Missing tableName" });
 
   // Prefer server-side vars; fall back to REACT_APP_* if those are what you currently have set
