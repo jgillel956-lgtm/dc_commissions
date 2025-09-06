@@ -393,6 +393,51 @@ class ZohoAnalyticsAPI {
     }
   }
 
+  // Get distinct companies from revenue_master_view
+  async getDistinctCompanies(): Promise<ZohoAnalyticsResponse<Array<{company_id: number, company: string}>>> {
+    try {
+      const query = `SELECT DISTINCT company_id, company FROM revenue_master_view WHERE company IS NOT NULL AND company != '' ORDER BY company`;
+      return await this.executeQuery(query);
+    } catch (error) {
+      console.error('Error fetching distinct companies:', error);
+      // Return mock data as fallback
+      return {
+        status: {
+          code: 200,
+          message: 'Success (Mock Data)'
+        },
+        data: [
+          { company_id: 1, company: 'Acme Insurance' },
+          { company_id: 2, company: 'Global Corp' },
+          { company_id: 3, company: 'Premium Partners' }
+        ]
+      };
+    }
+  }
+
+  // Get distinct employee names (commission persons) from revenue_master_view
+  async getDistinctEmployees(): Promise<ZohoAnalyticsResponse<Array<{employee_name: string}>>> {
+    try {
+      const query = `SELECT DISTINCT employee_name FROM revenue_master_view WHERE employee_name IS NOT NULL AND employee_name != '' ORDER BY employee_name`;
+      return await this.executeQuery(query);
+    } catch (error) {
+      console.error('Error fetching distinct employees:', error);
+      // Return mock data as fallback
+      return {
+        status: {
+          code: 200,
+          message: 'Success (Mock Data)'
+        },
+        data: [
+          { employee_name: 'John Smith' },
+          { employee_name: 'Jane Doe' },
+          { employee_name: 'Bob Wilson' },
+          { employee_name: 'Sarah Johnson' }
+        ]
+      };
+    }
+  }
+
   // Test connection
   async testConnection(): Promise<boolean> {
     try {

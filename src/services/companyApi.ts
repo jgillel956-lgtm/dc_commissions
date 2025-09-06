@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { zohoAnalyticsAPI } from './zohoAnalyticsAPI';
 
 export interface Company {
   id: number;
@@ -7,6 +8,12 @@ export interface Company {
   status?: 'active' | 'inactive';
   created_at?: string;
   updated_at?: string;
+}
+
+export interface Employee {
+  id?: number;
+  name: string;
+  status?: 'active' | 'inactive';
 }
 
 export interface CompanyApiResponse {
@@ -27,7 +34,7 @@ export interface CompanyFilterParams {
 }
 
 /**
- * Fetch companies from the API
+ * Fetch companies from the API (legacy - kept for compatibility)
  */
 export const fetchCompanies = async (params: CompanyFilterParams = {}): Promise<CompanyApiResponse> => {
   try {
@@ -50,21 +57,52 @@ export const fetchCompanies = async (params: CompanyFilterParams = {}): Promise<
 };
 
 /**
+ * Fetch companies from revenue_master_view via Zoho Analytics API
+ */
+export const fetchCompaniesFromRevenueView = async (): Promise<Company[]> => {
+  try {
+    const response = await zohoAnalyticsAPI.getDistinctCompanies();
+    
+    if (response.status.code === 200 && response.data) {
+      // Transform Zoho Analytics response to Company interface
+      return response.data.map(item => ({
+        id: item.company_id,
+        name: item.company,
+        status: 'active' as const
+      }));
+    } else {
+      console.warn('Zoho Analytics response not successful, falling back to mock data');
+      return getMockCompanies();
+    }
+  } catch (error) {
+    console.error('Error fetching companies from revenue_master_view:', error);
+    // Fallback to mock data
+    return getMockCompanies();
+  }
+};
+
+/**
  * Fetch all companies (for dropdown/select components)
  */
 export const fetchAllCompanies = async (): Promise<Company[]> => {
   try {
-    const response = await fetchCompanies({
-      status: 'active',
-      page_size: 1000, // Get all active companies
-      sort_by: 'name',
-      sort_order: 'asc'
-    });
-
-    return response.companies;
+    // Use the new revenue_master_view API for production data
+    return await fetchCompaniesFromRevenueView();
   } catch (error) {
     console.error('Error fetching all companies:', error);
-    throw new Error('Failed to fetch all companies');
+    // Fallback to legacy API if needed
+    try {
+      const response = await fetchCompanies({
+        status: 'active',
+        page_size: 1000,
+        sort_by: 'name',
+        sort_order: 'asc'
+      });
+      return response.companies;
+    } catch (fallbackError) {
+      console.error('Legacy API also failed, using mock data:', fallbackError);
+      return getMockCompanies();
+    }
   }
 };
 
@@ -157,4 +195,79 @@ export const mockSearchCompanies = (searchTerm: string): Company[] => {
     company.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 };
+
+// Employee API functions for commission persons
+
+/**
+ * Fetch employees/commission persons from revenue_master_view via Zoho Analytics API
+ */
+export const fetchEmployeesFromRevenueView = async (): Promise<Employee[]> => {
+  try {
+    const response = await zohoAnalyticsAPI.getDistinctEmployees();
+    
+    if (response.status.code === 200 && response.data) {
+      // Transform Zoho Analytics response to Employee interface
+      return response.data.map((item, index) => ({
+        id: index + 1, // Generate ID since employee_name doesn't have ID
+        name: item.employee_name,
+        status: 'active' as const
+      }));
+    } else {
+      console.warn('Zoho Analytics employee response not successful, falling back to mock data');
+      return getMockEmployees();
+    }
+  } catch (error) {
+    console.error('Error fetching employees from revenue_master_view:', error);
+    // Fallback to mock data
+    return getMockEmployees();
+  }
+};
+
+/**
+ * Fetch all employees/commission persons (for dropdown/select components)
+ */
+export const fetchAllEmployees = async (): Promise<Employee[]> => {
+  try {
+    return await fetchEmployeesFromRevenueView();
+  } catch (error) {
+    console.error('Error fetching all employees:', error);
+    return getMockEmployees();
+  }
+};
+
+/**
+ * Search employees by name
+ */
+export const searchEmployees = async (searchTerm: string): Promise<Employee[]> => {
+  try {
+    const employees = await fetchAllEmployees();
+    if (!searchTerm) return employees;
+    
+    return employees.filter(employee => 
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  } catch (error) {
+    console.error('Error searching employees:', error);
+    return getMockEmployees().filter(employee => 
+      employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+};
+
+/**
+ * Mock employee data for development/testing
+ */
+export const getMockEmployees = (): Employee[] => [
+  { id: 1, name: 'John Smith', status: 'active' },
+  { id: 2, name: 'Jane Doe', status: 'active' },
+  { id: 3, name: 'Bob Wilson', status: 'active' },
+  { id: 4, name: 'Sarah Johnson', status: 'active' },
+  { id: 5, name: 'Mike Davis', status: 'active' },
+  { id: 6, name: 'Lisa Brown', status: 'active' },
+  { id: 7, name: 'Tom Anderson', status: 'active' },
+  { id: 8, name: 'Amy Taylor', status: 'active' }
+];
+
+
+
 

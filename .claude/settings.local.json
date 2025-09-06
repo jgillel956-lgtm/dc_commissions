@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena__replace_regex",
+      "mcp__serena__read_file",
+      "mcp__serena__search_for_pattern"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

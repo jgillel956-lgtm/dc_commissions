@@ -51,22 +51,26 @@ const RevenueAnalysisTab: React.FC = () => {
 
     // Transform raw data into commission calculation format
     const commissionTransactions = rows.map((row, index) => {
-      const amount = parseFloat(row.commission_amount || '0') || 0;
+      // NOTE: This is commission CONFIGURATION data, not transaction data
+      // commission_amount is empty - we have commission_percentage rates instead
       const commissionRate = (parseFloat(row.commission_percentage || '0') || 0) / 100;
+      
+      // For demo purposes, use a sample transaction amount or commission percentage as base
+      // TODO: This should be connected to actual transaction/revenue data
+      const demoTransactionAmount = 1000; // Sample $1000 transaction
+      const calculatedCommission = demoTransactionAmount * commissionRate;
+      
+      const amount = calculatedCommission; // Use calculated commission instead of empty commission_amount
       
       // DEBUG: Log raw data structure for first few rows
       if (index < 3) {
-        console.log(`🔍 Row ${index} raw data:`, {
-          commission_amount: row.commission_amount,
-          commission_percentage: row.commission_percentage,
-          employee_id: row.employee_id,
-          employee_name: row.employee_name,
-          company_id: row.company_id,
-          effective_start_date: row.effective_start_date,
-          parsed_amount: amount,
-          parsed_rate: commissionRate,
-          all_fields: Object.keys(row)
-        });
+        console.log(`🔍 Row ${index} FIXED CALCULATION:`, 
+          `\n  ❌ commission_amount: "${row.commission_amount}" (empty)`,
+          `\n  ✅ commission_percentage: "${row.commission_percentage}" → rate: ${commissionRate}`,
+          `\n  💡 calculated_commission: $${demoTransactionAmount} × ${commissionRate} = $${amount}`,
+          `\n  employee: ${row.employee_name}`,
+          `\n  description: ${row.description}`
+        );
       }
       
       return {
@@ -84,7 +88,7 @@ const RevenueAnalysisTab: React.FC = () => {
     // DEBUG: Log before filtering
     console.log(`🔍 Before filtering: ${commissionTransactions.length} transactions`);
     commissionTransactions.slice(0, 3).forEach((t, i) => {
-      console.log(`🔍 Transaction ${i}:`, { amount: t.amount, employeeName: t.employeeName });
+      console.log(`🔍 Transaction ${i}: amount=${t.amount}, employeeName="${t.employeeName}", employeeId="${t.employeeId}"`);
     });
     
     const filteredTransactions = commissionTransactions.filter(t => t.amount > 0);

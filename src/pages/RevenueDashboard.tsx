@@ -8,6 +8,7 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
 import RevenueAnalyticsDemo from '../components/dashboard/RevenueAnalyticsDemo';
+import CommissionReportingTab from '../components/dashboard/CommissionReportingTab';
 
 const RevenueDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -62,7 +63,8 @@ const RevenueDashboard: React.FC = () => {
       revenue: 'Revenue Analysis',
       commission: 'Commission Analysis',
       interest: 'Interest Analysis',
-      'analytics-demo': 'Analytics Demo'
+      'analytics-demo': 'Analytics Demo',
+      'commission-reporting': 'Commission Reporting'
     };
 
     return [
@@ -86,6 +88,18 @@ const RevenueDashboard: React.FC = () => {
       description: 'Commissions and profit analysis'
     },
     {
+      id: 'commission-reporting-tab',
+      label: 'Commission Reporting',
+      tab: 'commission-reporting' as DashboardTab,
+      description: 'Commission payment reports by employee, partner and company'
+    },
+    {
+      id: 'employee-commission-dashboard',
+      label: 'Employee Commission System',
+      path: '/employee-commissions',
+      description: 'Complete employee commission system with earnings summary and reports'
+    },
+    {
       id: 'interest-tab',
       label: 'Interest Analysis',
       tab: 'interest' as DashboardTab,
@@ -107,6 +121,9 @@ const RevenueDashboard: React.FC = () => {
 
       case 'commission':
         return <CommissionAnalysisTab />;
+
+      case 'commission-reporting':
+        return <CommissionReportingTab />;
 
       case 'interest':
         return (
@@ -221,11 +238,12 @@ const RevenueDashboard: React.FC = () => {
 
           {/* Tab Navigation */}
           <div className="flex space-x-1 pb-4">
-            {(['revenue', 'commission', 'interest', 'analytics-demo'] as const).map((tab) => {
+            {(['revenue', 'commission', 'commission-reporting', 'interest', 'analytics-demo'] as const).map((tab) => {
               const isActive = dashboardState.activeTab === tab;
               const tabConfig = {
                 revenue: { label: 'Revenue Analysis', icon: '📊' },
                 commission: { label: 'Commission Analysis', icon: '💰' },
+                'commission-reporting': { label: 'Commission Reporting', icon: '📋' },
                 interest: { label: 'Interest Analysis', icon: '📈' },
                 'analytics-demo': { label: 'Analytics Demo', icon: '🔍' }
               };

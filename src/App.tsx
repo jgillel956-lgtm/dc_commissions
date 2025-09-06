@@ -5,9 +5,11 @@ import './App.css';
 
 // Import context providers
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Import actual components
 import RevenueDashboard from './pages/RevenueDashboard';
+import EmployeeCommissionPage from './pages/EmployeeCommissionPage';
 import Login from './pages/Login';
 import TableView from './pages/TableView';
 import AdminPanel from './pages/AdminPanel';
@@ -44,32 +46,42 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <div className="App">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/oauth-setup" element={<OAuthSetup />} />
-              <Route path="/table-view" element={<TableViewWrapper />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <RevenueDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <RevenueDashboard />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
+        <ThemeProvider>
+          <Router>
+            <div className="App">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/oauth-setup" element={<OAuthSetup />} />
+                <Route path="/table-view" element={<TableViewWrapper />} />
+                <Route
+                  path="/employee-commissions"
+                  element={
+                    <ProtectedRoute>
+                      <EmployeeCommissionPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <RevenueDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <RevenueDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </Router>
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

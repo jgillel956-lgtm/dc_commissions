@@ -26,9 +26,9 @@ export const revenueAnalyticsKeys = {
  */
 export const useAllRevenueData = (params: RevenueAnalyticsQueryParams = {}) => {
   return useQuery({
-    queryKey: ['revenueAnalytics', 'consolidated', params],
+    queryKey: ['revenueAnalytics', 'consolidated', JSON.stringify(params)],
     queryFn: async () => {
-      console.log('🚀 Fetching consolidated revenue data (SINGLE API CALL)...');
+      console.log('🚀 Fetching consolidated revenue data (SINGLE API CALL)...', { params, timestamp: Date.now() });
       
       // Make only ONE API call
       const baseData = await revenueAnalyticsService.executeRevenueAnalyticsQuery(params);
