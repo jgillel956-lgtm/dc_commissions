@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Company, fetchAllCompanies, searchCompanies, getMockCompanies, mockSearchCompanies } from '../services/companyApi';
+import { Company, fetchAllCompanies, searchCompanies, getMockCompanies, mockSearchCompanies, fetchCompaniesFromRevenueView } from '../services/companyApi';
 
 export interface UseCompanyDataReturn {
   // Company data
@@ -49,7 +49,7 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
   const {
     initialSelectedIds = [],
     enableSearch = true,
-    useMockData = true, // Use mock data for development
+    useMockData = false, // Use real data from revenue_master_view by default
     autoLoad = true
   } = options;
 
@@ -69,22 +69,14 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
     }
   }, [autoLoad]);
 
-  // Load companies function
+  // Load companies function - always use real API data from revenue_master_view
   const loadCompanies = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      let companyData: Company[];
-      
-      if (useMockData) {
-        // Use mock data for development
-        companyData = getMockCompanies();
-      } else {
-        // Use real API
-        companyData = await fetchAllCompanies();
-      }
-      
+      // Always use real API data from revenue_master_view via fetchCompaniesFromRevenueView
+      const companyData = await fetchCompaniesFromRevenueView();
       setCompanies(companyData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load companies');
@@ -92,9 +84,9 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
     } finally {
       setLoading(false);
     }
-  }, [useMockData]);
+  }, []);
 
-  // Search companies
+  // Search companies - always use real API search
   const performSearch = useCallback(async (term: string) => {
     if (!enableSearch || !term.trim()) {
       setSearchResults([]);
@@ -105,16 +97,8 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
     setIsSearching(true);
     
     try {
-      let results: Company[];
-      
-      if (useMockData) {
-        // Use mock search for development
-        results = mockSearchCompanies(term);
-      } else {
-        // Use real API search
-        results = await searchCompanies(term);
-      }
-      
+      // Always use real API search from revenue_master_view
+      const results = await searchCompanies(term);
       setSearchResults(results);
     } catch (err) {
       console.error('Error searching companies:', err);
@@ -122,7 +106,7 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
     } finally {
       setIsSearching(false);
     }
-  }, [enableSearch, useMockData]);
+  }, [enableSearch]);
 
   // Debounced search effect
   useEffect(() => {
@@ -218,7 +202,7 @@ export const useCompanyData = (options: UseCompanyDataOptions = {}): UseCompanyD
     filteredCompanies,
     sortCompanies
   };
-};
+};;
 
 export default useCompanyData;
 
