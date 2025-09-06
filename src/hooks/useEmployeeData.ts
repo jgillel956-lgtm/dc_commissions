@@ -71,7 +71,7 @@ export interface UseEmployeeDataOptions {
 /**
  * Custom hook for managing employee data with search and selection functionality
  */
-export const export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmployeeDataReturn => {
+export const useEmployeeData = (options: UseEmployeeDataOptions = {}): UseEmployeeDataReturn => {
   const {
     initialSelectedIds = [],
     enableSearch = true,
