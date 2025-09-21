@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Plus, Search, Filter, RefreshCw, ArrowLeft, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -87,6 +87,13 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
 
   // Use the generic mutation hooks for the active table
   const { create, update, delete: deleteMutation, export: exportMutation } = useZohoMutations(activeTable);
+
+  // Debug logging for DataTable rendering
+  useEffect(() => {
+    if (data?.data && !useGroupedView) {
+      console.log('📋 About to render DataTable with ' + data.data.length + ' records for ' + activeTable);
+    }
+  }, [data, useGroupedView, activeTable]);
 
   // Handle search
   const handleSearch = useCallback((query: string) => {
@@ -364,8 +371,6 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
                   onToggleView={() => setUseGroupedView(false)}
                 />
               ) : (
-                // DEBUG: About to render DataTable
-                console.log('📋 About to render DataTable with ' + records.length + ' records for ' + activeTable) ||
                 <DataTable
                   data={records}
                   tableConfig={tableConfig}
