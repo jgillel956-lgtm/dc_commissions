@@ -30,6 +30,18 @@ const Select: React.FC<SelectProps> = ({
 }) => {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
   
+  // Reduced debug logging to prevent excessive re-renders
+  if (id === 'payment_method_id' && !sessionStorage.getItem('select-render-' + id)) {
+    console.log('SELECT RENDER for ' + id + ':');
+    console.log('Options received: ' + options.length);
+    console.log('Current value: ' + value);
+    console.log('Placeholder: ' + placeholder);
+    if (options.length > 0) {
+      console.log('First option: ' + options[0]?.value + ' = ' + options[0]?.label);
+    }
+    sessionStorage.setItem('select-render-' + id, 'true');
+  }
+  
   const baseClasses = 'w-full px-5 py-4 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 bg-white appearance-none cursor-pointer';
   
   const stateClasses = error

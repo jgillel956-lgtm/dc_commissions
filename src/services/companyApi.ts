@@ -222,18 +222,28 @@ export const fetchEmployeesFromRevenueView = async (): Promise<Employee[]> => {
       ORDER BY employee_name
     `;
     
-    const response = await zohoAnalyticsAPI.executeQuery(query);
+    // Fetch from revenue_master_view with async export (query parameter not used anymore)
+    const response = await zohoAnalyticsAPI.executeQuery('');
     if (response.status.code === 200 && response.data) {
-      return response.data.map((item: any, index: number) => ({
-        id: index + 1,
-        name: item.employee_name,
-        status: 'active' as const,
-        email: item.email || `${item.employee_name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
-        employee_id: item.employee_id || `EMP${String(index + 1).padStart(3, '0')}`,
-        department: item.department || 'Not Specified',
-        role: item.role || 'Employee',
-        commission_rate: item.commission_rate || 0
-      }));
+      // Get unique employees from the revenue master view data
+      const uniqueEmployees = new Map();
+      
+      response.data.forEach((item: any, index: number) => {
+        if (item.employee_name && !uniqueEmployees.has(item.employee_name)) {
+          uniqueEmployees.set(item.employee_name, {
+            id: parseInt(item.employee_id) || index + 1,
+            name: item.employee_name,
+            status: 'active' as const,
+            email: item.email || `${item.employee_name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+            employee_id: item.employee_id || `EMP${String(index + 1).padStart(3, '0')}`,
+            department: item.department || 'Revenue',
+            role: item.role || 'Employee',
+            commission_rate: parseFloat(item.commission_percentage || item.commission_rate || '0')
+          });
+        }
+      });
+      
+      return Array.from(uniqueEmployees.values());
     } else {
       console.warn('No employee data returned from Zoho Analytics');
       return [];

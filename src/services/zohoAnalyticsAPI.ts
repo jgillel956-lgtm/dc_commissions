@@ -27,10 +27,25 @@ class ZohoAnalyticsAPI {
   private clientSecret: string;
   private workspaceId: string;
   private orgId: string;
+  private useMockData: boolean = false;
   private rateLimiter = {
     lastCall: 0,
     minInterval: 100 // 100ms between calls
   };
+
+  // Helper method to construct API URL (bypass token now sent as header)
+  private getApiUrl(endpoint: string = '/api/zoho-analytics'): string {
+    const url = new URL(endpoint, window.location.origin);
+    return url.toString();
+  }
+
+  // Helper method to get headers with Vercel bypass token
+  private getHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      'x-vercel-protection-bypass': 'uecJcaAEY8pr8Gx3d50jRkzybc0ofwkt'
+    };
+  }
 
   constructor() {
     // Debug environment variables
@@ -63,6 +78,7 @@ class ZohoAnalyticsAPI {
       return;
     }
 
+
     console.log('Zoho Analytics API: All environment variables loaded successfully');
   }
 
@@ -93,18 +109,9 @@ class ZohoAnalyticsAPI {
     try {
       await this.rateLimit();
 
-      // Use URLSearchParams to properly encode the form data
-      const formData = new URLSearchParams();
-      formData.append('refresh_token', this.refreshToken);
-      formData.append('client_id', this.clientId);
-      formData.append('client_secret', this.clientSecret);
-      formData.append('grant_type', 'refresh_token');
+      // OAuth refresh now handled by backend API to avoid CORS issues
 
-      const response = await axios.post('https://accounts.zoho.com/oauth/v2/token', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+      const response = await axios.get(this.getApiUrl('/api/zoho-analytics?testOAuth=1'));
 
       this.accessToken = response.data.access_token;
       return this.accessToken!;
@@ -282,7 +289,7 @@ class ZohoAnalyticsAPI {
 
       const response = await axios({
         method: 'GET',
-        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/api/v2'}/tables/export`,
+        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/restapi/v2'}/tables/export`,
         headers: {
           'Authorization': `Zoho-oauthtoken ${token}`,
         },
@@ -364,26 +371,25 @@ class ZohoAnalyticsAPI {
     this.accessToken = null;
   }
 
-  // Execute custom SQL query
+  // Execute custom SQL query via backend proxy
   async executeQuery(query: string): Promise<ZohoAnalyticsResponse<any>> {
     try {
-      const token = await this.getAccessToken();
-      
-      const payload = {
-        ZOHO_WORKSPACE_ID: this.workspaceId,
-        query: query
-      };
-
-      const response = await axios({
-        method: 'POST',
-        url: `${process.env.REACT_APP_ZOHO_API_BASE_URL || 'https://analyticsapi.zoho.com/api/v2'}/query`,
-        headers: {
-          'Authorization': `Zoho-oauthtoken ${token}`,
-          'Content-Type': 'application/json',
-        },
-        data: payload
+      // Use backend API proxy to get data from revenue_master_view with async export
+      const response = await axios.post(this.getApiUrl(), {
+        tableName: 'revenue_master_view',
+        action: 'records'
+      }, {
+        headers: this.getHeaders()
       });
-
+      
+      // Transform backend response to expected format
+      if (response.data && Array.isArray(response.data.rows)) {
+        return {
+          status: { code: 200, message: 'Success' },
+          data: response.data.rows
+        };
+      }
+      
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -396,41 +402,71 @@ class ZohoAnalyticsAPI {
   // Get distinct companies from revenue_master_view via backend proxy
   async getDistinctCompanies(): Promise<ZohoAnalyticsResponse<Array<{company_id: number, company: string}>>> {
     try {
-      // Use backend API proxy to avoid CORS issues
-      const response = await axios.post('/api/zoho-analytics', {
+      // Use backend API proxy to get companies from database
+      const response = await axios.post(this.getApiUrl(), {
         tableName: 'revenue_master_view',
-        action: 'query',
-        query: `SELECT DISTINCT company_id, company FROM revenue_master_view WHERE company IS NOT NULL AND company != '' ORDER BY company`
+        action: 'companies'
+      }, {
+        headers: this.getHeaders()
       });
       
-      // Transform backend response to expected format
-      if (response.data && Array.isArray(response.data.rows)) {
+      console.log('📊 Company data response:', response.data);
+
+      // Check if we have database data
+      if (response.data && response.data.source === 'database' && Array.isArray(response.data.rows)) {
+        // Database already returns distinct companies in the correct format
+        const companies = response.data.rows.map((row: any) => ({
+          company_id: parseInt(row.company_id) || 0,
+          company: row.company
+        }));
+
+        console.log(`✅ Found ${companies.length} unique companies from database`);
+        
         return {
-          status: {
-            code: 200,
-            message: 'Success'
-          },
-          data: response.data.rows.map((row: any) => ({
-            company_id: row.company_id || row['Company ID'] || 0,
-            company: row.company || row['Company'] || ''
-          }))
+          status: { code: 200, message: 'Success' },
+          data: companies
+        };
+      }
+
+      // If no database data, check if we need to sync
+      if (response.data && response.data.needsRefresh) {
+        console.log('⚠️ No database data available, prompting for sync');
+        return {
+          status: { code: 200, message: 'No data - sync required' },
+          data: []
         };
       }
       
-      throw new Error('Invalid response format from backend');
+      // Fallback to any available data
+      if (response.data && Array.isArray(response.data.rows)) {
+        const companies = response.data.rows
+          .filter((row: any) => row.company && row.company_id)
+          .reduce((unique: Array<{company_id: number, company: string}>, row: any) => {
+            const company_id = parseInt(row.company_id) || 0;
+            const company = row.company;
+
+            if (!unique.find(u => u.company_id === company_id)) {
+              unique.push({ company_id, company });
+            }
+            return unique;
+          }, []);
+
+        return {
+          status: { code: 200, message: 'Success' },
+          data: companies
+        };
+      }
+      
+      throw new Error('No data available - please sync first');
     } catch (error) {
-      console.error('Error fetching distinct companies:', error);
-      // Return mock data as fallback
+      console.error('❌ Error fetching distinct companies:', error);
+      // Don't return mock data - encourage real data sync
       return {
         status: {
           code: 200,
-          message: 'Success (Mock Data)'
+          message: 'No data - please sync first'
         },
-        data: [
-          { company_id: 1, company: 'Acme Insurance' },
-          { company_id: 2, company: 'Global Corp' },
-          { company_id: 3, company: 'Premium Partners' }
-        ]
+        data: []
       };
     }
   }
@@ -438,41 +474,59 @@ class ZohoAnalyticsAPI {
   // Get distinct employee names (commission persons) from revenue_master_view via backend proxy  
   async getDistinctEmployees(): Promise<ZohoAnalyticsResponse<Array<{employee_name: string}>>> {
     try {
-      // Use backend API proxy to avoid CORS issues
-      const response = await axios.post('/api/zoho-analytics', {
+      // Use backend API proxy to get employees from database
+      const response = await axios.post(this.getApiUrl(), {
         tableName: 'revenue_master_view',
-        action: 'query',
-        query: `SELECT DISTINCT employee_name FROM revenue_master_view WHERE employee_name IS NOT NULL AND employee_name != '' ORDER BY employee_name`
+        action: 'employees'
+      }, {
+        headers: this.getHeaders()
       });
       
-      // Transform backend response to expected format
-      if (response.data && Array.isArray(response.data.rows)) {
+      console.log('👥 Employee data response:', response.data);
+
+      // Check if we have database data
+      if (response.data && response.data.source === 'database' && Array.isArray(response.data.rows)) {
+        // Database already returns distinct employees in the correct format
+        const employees = response.data.rows.map((row: any) => ({
+          employee_name: row.employee_name
+        }));
+
+        console.log(`✅ Found ${employees.length} unique employees from database`);
+        
         return {
-          status: {
-            code: 200,
-            message: 'Success'
-          },
-          data: response.data.rows.map((row: any) => ({
-            employee_name: row.employee_name || row['Employee Name'] || ''
-          }))
+          status: { code: 200, message: 'Success' },
+          data: employees
+        };
+      }
+
+      // If no database data, check if we need to sync
+      if (response.data && response.data.needsRefresh) {
+        console.log('⚠️ No database data available, prompting for sync');
+        return {
+          status: { code: 200, message: 'No data - sync required' },
+          data: []
         };
       }
       
-      throw new Error('Invalid response format from backend');
+      // Fallback to any available data
+      if (response.data && Array.isArray(response.data.rows)) {
+        const employees = [...new Set(response.data.rows.map((row: any) => row.employee_name).filter(Boolean))].map((name: string) => ({
+          employee_name: name
+        }));
+
+        return {
+          status: { code: 200, message: 'Success' },
+          data: employees
+        };
+      }
+      
+      throw new Error('No data available - please sync first');
     } catch (error) {
-      console.error('Error fetching distinct employees:', error);
-      // Return mock data as fallback
+      console.error('❌ Error fetching distinct employees:', error);
+      // Don't return mock data - encourage real data sync
       return {
-        status: {
-          code: 200,
-          message: 'Success (Mock Data)'
-        },
-        data: [
-          { employee_name: 'John Smith' },
-          { employee_name: 'Jane Doe' },
-          { employee_name: 'Bob Wilson' },
-          { employee_name: 'Sarah Johnson' }
-        ]
+        status: { code: 200, message: 'No data - sync required' },
+        data: []
       };
     }
   }

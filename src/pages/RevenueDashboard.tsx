@@ -9,6 +9,7 @@ import RevenueAnalysisTab from '../components/dashboard/RevenueAnalysisTab';
 import CommissionAnalysisTab from '../components/dashboard/CommissionAnalysisTab';
 import RevenueAnalyticsDemo from '../components/dashboard/RevenueAnalyticsDemo';
 import CommissionReportingTab from '../components/dashboard/CommissionReportingTab';
+import DataSyncAccordion from '../components/ui/DataSyncAccordion';
 
 const RevenueDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -269,6 +270,11 @@ const RevenueDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Data Sync Section */}
+        <div className="mb-8">
+          <DataSyncAccordion />
+        </div>
+
         {/* Welcome Message - Only show when no specific content is loaded */}
         {dashboardState.activeTab === 'revenue' && (
           <div className="mb-8">

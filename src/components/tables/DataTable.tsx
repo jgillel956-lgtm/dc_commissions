@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import Button from '../ui/Button';
 import { statusColors, columnFormatters } from '../../config/tableConfigs';
@@ -32,8 +32,20 @@ const DataTable: React.FC<DataTableProps> = ({
   totalPages = 1,
   onPageChange,
 }) => {
+  // IMMEDIATE DEBUG - Component instantiated
+  console.log('🚀 DataTable component instantiated for: ' + (tableConfig?.tableName || 'UNKNOWN'));
+  
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const lookupData = useLookupData(tableConfig.tableName);
+  
+  // PROMINENT DEBUG - This should always appear
+  console.log('🔥 DATATABLE COMPONENT LOADED FOR: ' + tableConfig.tableName);
+  
+  // Debug lookup data loading - always show status
+  const companiesCount = lookupData.companies?.length || 0;
+  const paymentMethodsCount = lookupData.paymentMethods?.length || 0;
+  
+  console.log('📋 DataTable render - ' + tableConfig.tableName + ' | Companies: ' + companiesCount + ' | Payment Methods: ' + paymentMethodsCount + ' | Records: ' + data.length);
 
   const handleSort = (field: string) => {
     if (!onSort) return;
@@ -60,16 +72,33 @@ const DataTable: React.FC<DataTableProps> = ({
     setSelectedRows(newSelected);
   };
 
-  const formatCellValue = (value: any, field: string) => {
-    // Handle lookup fields for employee commissions
-    if (tableConfig.tableName === 'employee_commissions_DC') {
-      if (field === 'payment_method_id' && value) {
-        const paymentMethod = lookupData.paymentMethods?.find((method: any) => method.id.toString() === value.toString());
-        return paymentMethod?.payment_method || value || '-';
+  const formatCellValue = useMemo(() => (value: any, field: string) => {
+    // Minimal debug logging for lookup fields
+    if ((field === 'payment_method_id' || field === 'company_id') && value && !lookupData[field === 'company_id' ? 'companies' : 'paymentMethods']?.length) {
+      console.log('Lookup data not ready for ' + field + ' (value: ' + value + ')');
+    }
+    
+    // Handle lookup fields for all tables
+    if (field === 'payment_method_id' && value && lookupData.paymentMethods) {
+      const paymentMethod = lookupData.paymentMethods?.find((method: any) => method.id.toString() === value.toString());
+      console.log('Payment method lookup for ID ' + value + ':');
+      if (paymentMethod) {
+        console.log('Found: ' + paymentMethod.payment_method);
+        return paymentMethod.payment_method;
+      } else {
+        console.log('Not found - returning ID: ' + value);
+        return value || '-';
       }
-      if (field === 'company_id' && value) {
-        const company = lookupData.companies?.find((company: any) => company.id.toString() === value.toString());
-        return company?.company || value || '-';
+    }
+    if (field === 'company_id' && value && lookupData.companies) {
+      const company = lookupData.companies?.find((company: any) => company.id.toString() === value.toString());
+      console.log('Company lookup for ID ' + value + ':');
+      if (company) {
+        console.log('Found: ' + company.company);
+        return company.company;
+      } else {
+        console.log('Not found - returning ID: ' + value);
+        return value || '-';
       }
     }
 
@@ -78,7 +107,7 @@ const DataTable: React.FC<DataTableProps> = ({
       return formatter(value);
     }
     return value || '-';
-  };
+  }, [lookupData.companies, lookupData.paymentMethods, tableConfig.tableName]);
 
   const getStatusClass = (status: string) => {
     return statusColors[status as keyof typeof statusColors] || 'status-active';

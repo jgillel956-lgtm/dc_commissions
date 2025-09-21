@@ -71,14 +71,16 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
       switch (field.lookupTable) {
         case 'insurance_companies_DC':
           return lookupData.companies?.map((company: any) => ({
-            value: company[field.lookupValueField || 'id'],
+            value: String(company[field.lookupValueField || 'id']),
             label: company[field.lookupDisplayField || 'company']
           })) || [];
         case 'payment_modalities':
-          return lookupData.paymentMethods?.map((method: any) => ({
-            value: method[field.lookupValueField || 'id'],
+          const paymentOptions = lookupData.paymentMethods?.map((method: any) => ({
+            value: String(method[field.lookupValueField || 'id']),
             label: method[field.lookupDisplayField || 'payment_method']
           })) || [];
+          console.log('💳 Edit form payment options:', paymentOptions.length);
+          return paymentOptions;
         default:
           return [];
       }

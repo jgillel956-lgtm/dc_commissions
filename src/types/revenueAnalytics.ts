@@ -18,29 +18,48 @@ export interface RevenueAnalyticsRecord {
   employee_name: string | null;
   employee_commission_percentage: number | null;
   employee_commission_amount: number | null;
+  applied_employee_commission_percentage: number | null;
+  applied_employee_commission_amount: number | null;
+  employee_commission: number | null;
   
   // Referral Partner Fields
   referral_partner_name: string | null;
-  referral_partner_commission_percentage: number | null;
-  referral_partner_commission_amount: number | null;
+  referral_partner_type: string | null;
+  partner_default_rate: number | null;
+  company_override_rate: number | null;
+  applied_referral_rate: number | null;
+  referral_partner_commission: number | null;
   
   // Company Upcharge Fields
-  company_upcharge_fee_amount: number | null;
-  company_upcharge_fee_percentage: number | null;
+  base_fee_upcharge: number | null;
+  multiplier_upcharge: number | null;
+  max_fee_upcharge: number | null;
+  company_upcharge_fees: number | null;
   
-  // Monthly Interchange Income
-  monthly_interchange_income_amount: number | null;
+  // Revenue calculation fields
+  gross_revenue: number | null;
+  is_revenue_transaction: number | null;
+  is_total_transaction: number | null;
+  payor_fee_revenue: number | null;
+  payee_fee_revenue: number | null;
+  total_combined_revenue: number | null;
+  revenue_per_transaction: number | null;
+  total_vendor_cost: number | null;
+  revenue_after_upcharges: number | null;
+  revenue_after_operational_costs: number | null;
+  revenue_after_employee_commission: number | null;
+  final_net_profit: number | null;
   
-  // Calculated Fields from revenue_master_view
-  Gross_Revenue: number;
-  Total_Vendor_Cost: number;
-  Total_Employee_Commission: number;
-  Total_Referral_Partner_Commission: number;
-  Total_Company_Upcharge_Fees: number;
-  Net_Profit: number;
-  Is_Revenue_Transaction: number;
-  Transaction_Month: string;
-  Transaction_Year: string;
+  // Legacy fields for backward compatibility
+  Gross_Revenue?: number;
+  Total_Vendor_Cost?: number;
+  Total_Employee_Commission?: number;
+  Total_Referral_Partner_Commission?: number;
+  Total_Company_Upcharge_Fees?: number;
+  Net_Profit?: number;
+  Is_Revenue_Transaction?: number;
+  Transaction_Month?: string;
+  Transaction_Year?: string;
 }
 
 export interface RevenueAnalyticsSummary {

@@ -1,7 +1,7 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { zohoApi } from '../services/zohoApi';
 import { SearchParams, Customer, Product, Order, Invoice } from '../services/apiTypes';
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 
 // Generic hook for fetching records with search and pagination
 export const useRecords = <T>(
@@ -181,6 +181,24 @@ export const useLookupData = (tableName: string) => {
   const { data: companies } = useZohoData('insurance_companies_DC');
   const { data: paymentMethods } = useZohoData('payment_modalities');
   
+  // Only log for debugging - remove excessive logging
+  const companiesCount = companies?.data?.length || 0;
+  const paymentMethodsCount = paymentMethods?.data?.length || 0;
+  
+  // Log only once per session using sessionStorage
+  const logKey = 'lookupDataLogged';
+  if (!sessionStorage.getItem(logKey) && paymentMethodsCount > 0) {
+    sessionStorage.setItem(logKey, 'true');
+    console.log('LOOKUP DATA LOADED:');
+    console.log('Companies: ' + companiesCount);
+    console.log('Payment Methods: ' + paymentMethodsCount);
+    
+    const sample = paymentMethods?.data?.[0];
+    console.log('Sample Payment Method ID: ' + sample?.id);
+    console.log('Sample Payment Method Name: ' + sample?.payment_method);
+    console.log('Sample Payment Method Keys: ' + Object.keys(sample || {}).join(', '));
+  }
+  
   const lookupData = useMemo(() => {
     switch (tableName) {
       case 'company_upcharge_fees_DC':
@@ -203,7 +221,12 @@ export const useLookupData = (tableName: string) => {
         };
       case 'vendor_costs_DC':
         return {
-          companies: companies?.data || []
+          companies: companies?.data || [],
+          paymentMethods: paymentMethods?.data || []
+        };
+      case 'payment_type_DC':
+        return {
+          paymentMethods: paymentMethods?.data || []
         };
       default:
         return {};

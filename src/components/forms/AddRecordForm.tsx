@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { Plus, Loader2 } from 'lucide-react';
@@ -57,25 +57,50 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
     },
   });
 
-  const getFieldOptions = (field: FieldConfig) => {
+  const getFieldOptions = useCallback((field: FieldConfig) => {
     if (field.lookupTable) {
       switch (field.lookupTable) {
         case 'insurance_companies_DC':
-          return lookupData.companies?.map((company: any) => ({
-            value: company[field.lookupValueField || 'id'],
+          const companyOptions = lookupData.companies?.map((company: any) => ({
+            value: String(company[field.lookupValueField || 'id']),
             label: company[field.lookupDisplayField || 'company']
           })) || [];
+          return companyOptions;
         case 'payment_modalities':
-          return lookupData.paymentMethods?.map((method: any) => ({
-            value: method[field.lookupValueField || 'id'],
-            label: method[field.lookupDisplayField || 'payment_method']
-          })) || [];
+          // Reduced debug logging to prevent excessive re-renders
+          if (!sessionStorage.getItem('addform-payment-methods')) {
+            console.log('PAYMENT METHOD DEBUG (payment_modalities):');
+            console.log('PaymentMethods count: ' + (lookupData.paymentMethods?.length || 0));
+            
+            if (lookupData.paymentMethods?.length > 0) {
+              const first = lookupData.paymentMethods[0];
+              console.log('First method ID: ' + first?.id);
+              console.log('First method name: ' + first?.payment_method);
+              console.log('First method keys: ' + Object.keys(first || {}).join(', '));
+            }
+            sessionStorage.setItem('addform-payment-methods', 'true');
+          }
+          
+          const paymentOptions = lookupData.paymentMethods?.map((method: any) => {
+            const option = {
+              value: String(method[field.lookupValueField || 'id']),
+              label: method[field.lookupDisplayField || 'payment_method']
+            };
+            return option;
+          }) || [];
+          
+          console.log('Payment options count: ' + paymentOptions.length);
+          if (paymentOptions.length > 0) {
+            console.log('First option value: ' + paymentOptions[0]?.value);
+            console.log('First option label: ' + paymentOptions[0]?.label);
+          }
+          return paymentOptions;
         default:
           return [];
       }
     }
     return field.options?.map(opt => ({ value: String(opt.value), label: opt.label })) || [];
-  };
+  }, [lookupData.companies, lookupData.paymentMethods]);
 
   const renderField = (field: FieldConfig) => {
     const { key, label, type, required, options } = field;
@@ -140,12 +165,30 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
         );
         
       case 'select':
+        const selectOptions = getFieldOptions(field);
+        // Reduced debug logging to prevent excessive re-renders
+        if (!sessionStorage.getItem('addform-select-' + key)) {
+          console.log('SELECT DEBUG for ' + key + ':');
+          console.log('Options count: ' + selectOptions.length);
+          console.log('Field type: ' + (field.lookupTable || 'static'));
+          if (selectOptions.length > 0) {
+            console.log('First option: ' + selectOptions[0]?.value + ' = ' + selectOptions[0]?.label);
+          }
+          sessionStorage.setItem('addform-select-' + key, 'true');
+        }
+        
         return (
           <Select
-            {...commonProps}
+            id={key}
+            name={key}
+            value={value || ''}
+            onChange={(value) => formik.setFieldValue(key, value)}
+            onBlur={() => formik.handleBlur({ target: { name: key } })}
+            required={required}
+            disabled={isReadOnly}
             label={label}
             error={error as string}
-            options={getFieldOptions(field)}
+            options={selectOptions}
             placeholder={`Select ${label.toLowerCase()}`}
           />
         );

@@ -21,6 +21,9 @@ interface TableViewProps {
 }
 
 const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
+  // DEBUG: TableView component loading
+  console.log('📊 TableView loading for table: ' + activeTable);
+  
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -361,6 +364,8 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
                   onToggleView={() => setUseGroupedView(false)}
                 />
               ) : (
+                // DEBUG: About to render DataTable
+                console.log('📋 About to render DataTable with ' + records.length + ' records for ' + activeTable) ||
                 <DataTable
                   data={records}
                   tableConfig={tableConfig}

@@ -127,7 +127,7 @@ export const tableConfigs: Record<string, TableConfig> = {
         label: 'Payment Method',
         type: 'select',
         required: true,
-        lookupTable: 'payment_type_DC',
+        lookupTable: 'payment_modalities',
         lookupValueField: 'id',
         lookupDisplayField: 'payment_method'
       },
@@ -430,11 +430,49 @@ export const tableConfigs: Record<string, TableConfig> = {
         placeholder: 'Enter cost type'
       },
       {
+        key: 'payment_method_id',
+        label: 'Payment Method',
+        type: 'select',
+        required: false,
+        lookupTable: 'payment_modalities',
+        lookupValueField: 'id',
+        lookupDisplayField: 'payment_method'
+      },
+      {
         key: 'amount',
         label: 'Amount',
         type: 'currency',
         required: true,
         placeholder: '0.00'
+      },
+      {
+        key: 'cost_amount',
+        label: 'Cost Amount',
+        type: 'currency',
+        required: false,
+        placeholder: '0.00'
+      },
+      {
+        key: 'cost_percentage',
+        label: 'Cost Percentage',
+        type: 'percentage',
+        required: false,
+        min: 0,
+        max: 100,
+        step: 0.01,
+        placeholder: '0.00'
+      },
+      {
+        key: 'effective_start_date',
+        label: 'Effective Start Date',
+        type: 'date',
+        required: false
+      },
+      {
+        key: 'effective_end_date',
+        label: 'Effective End Date',
+        type: 'date',
+        required: false
       },
       {
         key: 'date',
@@ -443,13 +481,20 @@ export const tableConfigs: Record<string, TableConfig> = {
         required: true
       },
       {
+        key: 'description',
+        label: 'Description',
+        type: 'text',
+        required: false,
+        placeholder: 'Enter description'
+      },
+      {
         key: 'active',
         label: 'Active',
         type: 'toggle',
         required: true
       }
     ],
-    displayColumns: ['vendor_name', 'cost_type', 'amount', 'date', 'active']
+    displayColumns: ['vendor_name', 'cost_type', 'payment_method_id', 'amount', 'cost_amount', 'cost_percentage', 'effective_start_date', 'effective_end_date', 'description', 'active']
   },
 
   payment_type_DC: {
@@ -639,6 +684,15 @@ export const columnFormatters: Record<string, (value: any) => string> = {
   commission_percentage: (value: any) => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(numValue) ? '0.0%' : `${numValue.toFixed(1)}%`;
+  },
+  cost_amount: (value: any) => {
+    if (value === null || value === undefined || isNaN(value)) return '$0.00';
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  },
+  cost_percentage: (value: any) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(numValue) ? '0.00%' : `${numValue.toFixed(2)}%`;
   },
   interchange_amount: (value: any) => {
     if (value === null || value === undefined || isNaN(value)) return '$0.00';

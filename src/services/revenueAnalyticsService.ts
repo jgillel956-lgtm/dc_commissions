@@ -28,16 +28,22 @@ export class RevenueAnalyticsService {
     try {
       console.log('🚀 Executing complex revenue analytics query via API...');
       
-      // Call our serverless API route
-      const response = await fetch('/api/revenue-analytics', {
+      // Call the consolidated Zoho Analytics API with database-backed system
+      const url = new URL('/api/zoho-analytics', window.location.origin);
+      
+      const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-vercel-protection-bypass': 'uecJcaAEY8pr8Gx3d50jRkzybc0ofwkt'
         },
         body: JSON.stringify({
-          filters: params.filters || {},
-          page: params.page || 1,
-          limit: params.limit || 50
+          tableName: 'revenue_master_view',
+          action: 'records',
+          startDate: params.filters?.dateRange?.start,
+          endDate: params.filters?.dateRange?.end,
+          limit: params.limit || 1000,
+          offset: ((params.page || 1) - 1) * (params.limit || 1000)
         })
       });
 

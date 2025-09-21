@@ -168,38 +168,44 @@ const EmployeeCommissionAddCompanyForm: React.FC<EmployeeCommissionAddCompanyFor
     return existingCombinations.has(`${companyId}_${modalityId}`);
   };
 
-  // Get companies to show - if there are existing records, show all companies, otherwise show only available ones
-  const getCompaniesToShow = () => {
-    if (existingRecords.length > 0) {
-      return lookupData.companies || [];
-    }
-    return lookupData.companies?.filter((company: any) => {
-      const companyId = company.id.toString();
-      const hasActiveForAllModalities = lookupData.paymentMethods?.every((method: any) => 
-        isCombinationActive(companyId, method.id.toString())
-      );
-      return !hasActiveForAllModalities;
-    }) || [];
+  // Always show all companies and payment methods, but mark existing combinations as disabled
+  const companiesToShow = lookupData.companies || [];
+  const paymentMethodsToShow = lookupData.paymentMethods || [];
+
+  // Helper function to check if a company has existing records for any payment method
+  const hasExistingRecordsForCompany = (companyId: string) => {
+    return lookupData.paymentMethods?.some((method: any) => 
+      isCombinationActive(companyId, method.id.toString())
+    ) || false;
   };
 
-  // Get payment methods to show - if there are existing records, show all payment methods, otherwise show only available ones
-  const getPaymentMethodsToShow = () => {
-    if (existingRecords.length > 0) {
-      return lookupData.paymentMethods || [];
-    }
-    return lookupData.paymentMethods?.filter((method: any) => {
-      const methodId = method.id.toString();
-      const hasActiveForAllCompanies = lookupData.companies?.every((company: any) => 
-        isCombinationActive(company.id.toString(), methodId)
-      );
-      return !hasActiveForAllCompanies;
-    }) || [];
+  // Helper function to check if a payment method has existing records for any company
+  const hasExistingRecordsForPaymentMethod = (methodId: string) => {
+    return lookupData.companies?.some((company: any) => 
+      isCombinationActive(company.id.toString(), methodId)
+    ) || false;
   };
 
-  const companiesToShow = getCompaniesToShow();
-  const paymentMethodsToShow = getPaymentMethodsToShow();
-
-  const previewRecords = selectedCompanies.length * selectedModalities.length;
+  // Calculate accurate preview count by excluding existing combinations
+  const calculatePreviewRecords = () => {
+    if (!bulkCreate || selectedCompanies.length === 0 || selectedModalities.length === 0) {
+      return 0;
+    }
+    
+    let newRecordsCount = 0;
+    for (const companyId of selectedCompanies) {
+      for (const modalityId of selectedModalities) {
+        if (!isCombinationActive(companyId, modalityId)) {
+          newRecordsCount++;
+        }
+      }
+    }
+    return newRecordsCount;
+  };
+  
+  const previewRecords = calculatePreviewRecords();
+  const totalPossibleRecords = selectedCompanies.length * selectedModalities.length;
+  const existingRecordsCount = totalPossibleRecords - previewRecords;
   const canCreate = !bulkCreate || (selectedCompanies.length > 0 && selectedModalities.length > 0);
 
   return (
@@ -271,10 +277,16 @@ const EmployeeCommissionAddCompanyForm: React.FC<EmployeeCommissionAddCompanyFor
                onChange={(value) => formik.setFieldValue('payment_method_id', value)}
                onBlur={() => formik.handleBlur({ target: { name: 'payment_method_id' } })}
                error={formik.touched.payment_method_id && formik.errors.payment_method_id ? String(formik.errors.payment_method_id) : undefined}
-               options={paymentMethodsToShow.map((method: any) => ({
-                 value: method.id.toString(),
-                 label: method.payment_method
-               }))}
+               options={paymentMethodsToShow.map((method: any) => {
+                 const methodId = method.id.toString();
+                 const companyId = formik.values.company_id;
+                 const isExisting = companyId ? isCombinationActive(companyId, methodId) : hasExistingRecordsForPaymentMethod(methodId);
+                 return {
+                   value: methodId,
+                   label: isExisting ? `${method.payment_method} (Already exists)` : method.payment_method,
+                   disabled: isExisting
+                 };
+               })}
                placeholder="Select payment method"
                required
              />
@@ -287,10 +299,16 @@ const EmployeeCommissionAddCompanyForm: React.FC<EmployeeCommissionAddCompanyFor
                onChange={(value) => formik.setFieldValue('company_id', value)}
                onBlur={() => formik.handleBlur({ target: { name: 'company_id' } })}
                error={formik.touched.company_id && formik.errors.company_id ? String(formik.errors.company_id) : undefined}
-               options={companiesToShow.map((company: any) => ({
-                 value: company.id.toString(),
-                 label: company.company
-               }))}
+               options={companiesToShow.map((company: any) => {
+                 const companyId = company.id.toString();
+                 const methodId = formik.values.payment_method_id;
+                 const isExisting = methodId ? isCombinationActive(companyId, methodId) : hasExistingRecordsForCompany(companyId);
+                 return {
+                   value: companyId,
+                   label: isExisting ? `${company.company} (Already exists)` : company.company,
+                   disabled: isExisting
+                 };
+               })}
                placeholder="Select company"
                required
              />
@@ -322,17 +340,24 @@ const EmployeeCommissionAddCompanyForm: React.FC<EmployeeCommissionAddCompanyFor
              </div>
              
              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-32 overflow-y-auto">
-               {companiesToShow.map((company: any) => (
-                <label key={company.id} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedCompanies.includes(company.id.toString())}
-                    onChange={(e) => handleCompanySelection(company.id.toString(), e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{company.company}</span>
-                </label>
-              ))}
+               {companiesToShow.map((company: any) => {
+                 const companyId = company.id.toString();
+                 const hasExisting = hasExistingRecordsForCompany(companyId);
+                 return (
+                   <label key={company.id} className={`flex items-center space-x-2 cursor-pointer ${hasExisting ? 'opacity-50' : ''}`}>
+                     <input
+                       type="checkbox"
+                       checked={selectedCompanies.includes(companyId)}
+                       onChange={(e) => handleCompanySelection(companyId, e.target.checked)}
+                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                     />
+                     <span className={`text-sm ${hasExisting ? 'text-gray-400' : 'text-gray-700'}`}>
+                       {company.company}
+                       {hasExisting && <span className="text-xs text-gray-400 ml-1">(Has existing records)</span>}
+                     </span>
+                   </label>
+                 );
+               })}
             </div>
           </div>
 
@@ -357,27 +382,49 @@ const EmployeeCommissionAddCompanyForm: React.FC<EmployeeCommissionAddCompanyFor
              </div>
              
              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-32 overflow-y-auto">
-               {paymentMethodsToShow.map((method: any) => (
-                <label key={method.id} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedModalities.includes(method.id.toString())}
-                    onChange={(e) => handleModalitySelection(method.id.toString(), e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{method.payment_method}</span>
-                </label>
-              ))}
+               {paymentMethodsToShow.map((method: any) => {
+                 const methodId = method.id.toString();
+                 const hasExisting = hasExistingRecordsForPaymentMethod(methodId);
+                 return (
+                   <label key={method.id} className={`flex items-center space-x-2 cursor-pointer ${hasExisting ? 'opacity-50' : ''}`}>
+                     <input
+                       type="checkbox"
+                       checked={selectedModalities.includes(methodId)}
+                       onChange={(e) => handleModalitySelection(methodId, e.target.checked)}
+                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                     />
+                     <span className={`text-sm ${hasExisting ? 'text-gray-400' : 'text-gray-700'}`}>
+                       {method.payment_method}
+                       {hasExisting && <span className="text-xs text-gray-400 ml-1">(Has existing records)</span>}
+                     </span>
+                   </label>
+                 );
+               })}
             </div>
           </div>
 
           {/* Preview */}
-          {previewRecords > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800">
-                <strong>Preview:</strong> This will create {previewRecords} commission record(s):
-                {selectedCompanies.length} companies × {selectedModalities.length} payment methods
-              </p>
+          {(previewRecords > 0 || existingRecordsCount > 0) && (
+            <div className="space-y-2">
+              {previewRecords > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    <strong>✅ New Records:</strong> This will create {previewRecords} new commission record(s)
+                  </p>
+                </div>
+              )}
+              {existingRecordsCount > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>⚠️ Existing Records:</strong> {existingRecordsCount} combination(s) already exist and will be skipped
+                  </p>
+                </div>
+              )}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>📊 Total Selection:</strong> {selectedCompanies.length} companies × {selectedModalities.length} payment methods = {totalPossibleRecords} total combinations
+                </p>
+              </div>
             </div>
           )}
         </div>

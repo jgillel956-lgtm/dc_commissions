@@ -411,8 +411,18 @@ export const zohoApi = {
       return mockApi.addRecord(tableName, data);
     }
 
-    // Format dates for Zoho Analytics API
+    // Add timestamps if not present
     const formattedData = { ...data };
+    const now = new Date().toISOString();
+    
+    if (!formattedData.created_at) {
+      formattedData.created_at = now;
+    }
+    if (!formattedData.updated_at) {
+      formattedData.updated_at = now;
+    }
+
+    // Format dates for Zoho Analytics API
     Object.keys(formattedData).forEach(key => {
       const value = formattedData[key];
       if (value && typeof value === 'string' && value.includes('T')) {
@@ -473,6 +483,10 @@ export const zohoApi = {
   updateRecord: async <T>(tableName: string, id: string, data: any): Promise<T> => {
     console.log('updateRecord called with:', { tableName, id, data });
     
+    // Add updated_at timestamp
+    const formattedData = { ...data };
+    formattedData.updated_at = new Date().toISOString();
+    
     // Get the old data for audit logging
     let oldData: any = {};
     try {
@@ -486,7 +500,7 @@ export const zohoApi = {
     }
 
     if (USE_MOCK_DATA) {
-      const result = mockApi.updateRecord(tableName, parseInt(id), data);
+      const result = mockApi.updateRecord(tableName, parseInt(id), formattedData);
       if (!result) {
         throw new Error('Record not found');
       }
@@ -495,8 +509,7 @@ export const zohoApi = {
 
     // Format dates for Zoho Analytics API
     console.log('Original data received in updateRecord:', data);
-    const formattedData = { ...data };
-    console.log('Formatted data before processing:', formattedData);
+    console.log('Formatted data with timestamp before processing:', formattedData);
     Object.keys(formattedData).forEach(key => {
       const value = formattedData[key];
       if (value && typeof value === 'string' && value.includes('T')) {
@@ -566,6 +579,8 @@ export const zohoApi = {
 
   // Delete a record
   deleteRecord: async (tableName: string, id: string): Promise<void> => {
+    console.log('🗑️ Delete record called:', { tableName, id });
+    
     // Get the old data for audit logging
     let oldData: any = {};
     try {
@@ -579,6 +594,7 @@ export const zohoApi = {
     }
 
     if (USE_MOCK_DATA) {
+      console.log('🧪 Using mock data for delete');
       const success = mockApi.deleteRecord(tableName, parseInt(id));
       if (!success) {
         throw new Error('Record not found');
@@ -587,12 +603,15 @@ export const zohoApi = {
     }
 
     try {
+      console.log('🌐 Making DELETE request to API');
       const response = await zohoAxios.delete('/api/zoho-analytics.mjs', {
         data: {
           tableName,
           params: { id }
         }
       });
+      
+      console.log('✅ Delete response:', response.data);
 
       // Log the delete operation for audit
       try {
@@ -607,7 +626,8 @@ export const zohoApi = {
         console.error('Audit logging failed:', error);
       }
     } catch (error: any) {
-      console.error(`Error deleting ${tableName} record:`, error);
+      console.error('❌ Error deleting ${tableName} record:', error);
+      console.error('Error details:', error.response?.data || error.message);
       throw error;
     }
   },
