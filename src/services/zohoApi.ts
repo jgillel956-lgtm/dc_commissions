@@ -454,17 +454,12 @@ export const zohoApi = {
     });
 
     try {
-      console.log(`🚀 Creating record for table: ${tableName}`);
-      console.log('📝 Formatted data:', JSON.stringify(formattedData, null, 2));
-      
       const response = await zohoAxios.post('/api/zoho-analytics.mjs', {
         tableName,
         data: formattedData
       });
 
-      console.log(`✅ Record created successfully for ${tableName}:`, response.data);
-
-      // Log the create operation for audit
+      // Log the create operation for audit (ignore failures)
       try {
         await auditLogger.logCreate(
           'unknown',
@@ -474,14 +469,12 @@ export const zohoApi = {
           formattedData
         );
       } catch (error) {
-        console.error('Audit logging failed:', error);
+        // Silently ignore audit logging failures
       }
 
       return response.data as T;
     } catch (error: any) {
-      console.error(`❌ Error creating ${tableName} record:`, error);
-      console.error('📋 Request data was:', JSON.stringify(formattedData, null, 2));
-      console.error('🔍 Full error details:', error.response?.data || error.message);
+      console.error(`Error creating ${tableName} record:`, error);
       throw error;
     }
   },
