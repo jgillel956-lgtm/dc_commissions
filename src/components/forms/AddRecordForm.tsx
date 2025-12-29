@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import { Plus, Loader2 } from 'lucide-react';
@@ -56,6 +56,23 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
       }
     },
   });
+
+  // Auto-fill Interest Period End for Monthly Interest Revenue
+  useEffect(() => {
+    if (tableConfig.tableName === 'monthly_interest_revenue_DC' && formik.values.interest_period_start) {
+      const startDate = new Date(formik.values.interest_period_start);
+      if (!isNaN(startDate.getTime())) {
+        // Get the last day of the same month
+        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        const formattedEndDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Only update if the end date is different to avoid infinite loops
+        if (formik.values.interest_period_end !== formattedEndDate) {
+          formik.setFieldValue('interest_period_end', formattedEndDate);
+        }
+      }
+    }
+  }, [formik.values.interest_period_start, tableConfig.tableName, formik]);
 
   const getFieldOptions = useCallback((field: FieldConfig) => {
     if (field.lookupTable) {

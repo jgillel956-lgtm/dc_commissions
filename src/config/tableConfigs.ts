@@ -59,9 +59,9 @@ export const monthlyInterestRevenueSchema = yup.object({
   interest_period_start: yup.date().required('Interest period start is required'),
   interest_period_end: yup.date().required('Interest period end is required'),
   interest_amount: yup.number().min(0, 'Interest amount must be positive').required('Interest amount is required'),
-  account_balance: yup.number().min(0, 'Account balance must be positive').required('Account balance is required'),
-  interest_rate: yup.number().min(0, 'Interest rate must be positive').required('Interest rate is required'),
-  bank_account_name: yup.string().required('Bank account name is required'),
+  account_balance: yup.number().min(0, 'Account balance must be positive').nullable(),
+  interest_rate: yup.number().min(0, 'Interest rate must be positive').nullable(),
+  bank_account_name: yup.string().nullable(),
   notes: yup.string().nullable(),
   posted_date: yup.date().required('Posted date is required'),
   active: yup.boolean().required('Active status is required')
@@ -309,26 +309,26 @@ export const tableConfigs: Record<string, TableConfig> = {
         key: 'account_balance',
         label: 'Account Balance',
         type: 'currency',
-        required: true,
+        required: false,
         min: 0,
         step: 0.01,
-        placeholder: '0.00'
+        placeholder: '0.00 (optional)'
       },
       {
         key: 'interest_rate',
         label: 'Interest Rate',
         type: 'percentage',
-        required: true,
+        required: false,
         min: 0,
         step: 0.0001,
-        placeholder: '0.0000'
+        placeholder: '0.0000 (optional)'
       },
       {
         key: 'bank_account_name',
         label: 'Bank Account Name',
         type: 'text',
-        required: true,
-        placeholder: 'Enter bank account name'
+        required: false,
+        placeholder: 'Enter bank account name (optional)'
       },
       {
         key: 'notes',
