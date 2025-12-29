@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
 import { Save, Loader2 } from 'lucide-react';
 import Button from '../ui/Button';
@@ -35,20 +35,40 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
       if (field.type === 'date' && value) {
         // Convert various date formats to yyyy-MM-dd
         if (typeof value === 'string') {
-          // Handle "26 Aug 2025 00:00:00" format
-          if (value.includes('Aug') || value.includes('Jan') || value.includes('Feb') || 
-              value.includes('Mar') || value.includes('Apr') || value.includes('May') || 
-              value.includes('Jun') || value.includes('Jul') || value.includes('Sep') || 
-              value.includes('Oct') || value.includes('Nov') || value.includes('Dec')) {
-            try {
-              const date = new Date(value);
-              if (!isNaN(date.getTime())) {
-                value = date.toISOString().split('T')[0]; // yyyy-MM-dd format
+          try {
+            let parsedDate;
+            
+            // Handle different date formats
+            if (value.includes('-') && value.split('-').length === 3) {
+              // Handle "01-01-2025" or "2025-01-01" format
+              const parts = value.split('-');
+              if (parts[0].length === 4) {
+                // Already in yyyy-MM-dd format
+                parsedDate = new Date(value + 'T00:00:00');
+              } else {
+                // Convert MM-dd-yyyy to yyyy-MM-dd
+                parsedDate = new Date(`${parts[2]}-${parts[0]}-${parts[1]}T00:00:00`);
               }
-            } catch (e) {
+            } else if (value.includes('Aug') || value.includes('Jan') || value.includes('Feb') || 
+                       value.includes('Mar') || value.includes('Apr') || value.includes('May') || 
+                       value.includes('Jun') || value.includes('Jul') || value.includes('Sep') || 
+                       value.includes('Oct') || value.includes('Nov') || value.includes('Dec')) {
+              // Handle "26 Aug 2025 00:00:00" format
+              parsedDate = new Date(value);
+            } else {
+              // Try parsing as-is
+              parsedDate = new Date(value);
+            }
+            
+            if (!isNaN(parsedDate.getTime())) {
+              value = parsedDate.toISOString().split('T')[0]; // yyyy-MM-dd format
+            } else {
               console.warn('Failed to parse date:', value);
               value = '';
             }
+          } catch (e) {
+            console.warn('Failed to parse date:', value, e);
+            value = '';
           }
         }
       }
@@ -69,6 +89,46 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
       }
     },
   });
+
+  // Auto-fill Interest Period End for Monthly Interest Revenue (same as AddRecordForm)
+  useEffect(() => {
+    if (tableConfig.tableName === 'monthly_interest_revenue_DC' && formik.values.interest_period_start) {
+      const startDateValue = formik.values.interest_period_start;
+      
+      // Handle different date formats more reliably
+      let startDate;
+      if (typeof startDateValue === 'string') {
+        // If it's in YYYY-MM-DD format, parse it directly
+        if (startDateValue.includes('-')) {
+          startDate = new Date(startDateValue + 'T00:00:00');
+        } else {
+          // Handle MM/DD/YYYY format
+          startDate = new Date(startDateValue);
+        }
+      } else {
+        startDate = new Date(startDateValue);
+      }
+      
+      if (!isNaN(startDate.getTime())) {
+        console.log('Edit form - Start date parsed:', startDate.toISOString(), 'Month:', startDate.getMonth(), 'Year:', startDate.getFullYear());
+        
+        // Get the last day of the same month as the start date
+        const year = startDate.getFullYear();
+        const month = startDate.getMonth(); // 0-based (0 = January, 10 = November)
+        const endDate = new Date(year, month + 1, 0); // Last day of the current month
+        
+        console.log('Edit form - End date calculated:', endDate.toISOString(), 'Month:', endDate.getMonth());
+        
+        const formattedEndDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Only update if the end date is different to avoid infinite loops
+        if (formik.values.interest_period_end !== formattedEndDate) {
+          console.log('Edit form - Setting end date to:', formattedEndDate);
+          formik.setFieldValue('interest_period_end', formattedEndDate);
+        }
+      }
+    }
+  }, [formik.values.interest_period_start, tableConfig.tableName, formik]);
 
   const getFieldOptions = (field: FieldConfig) => {
     if (field.lookupTable) {
