@@ -168,6 +168,15 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     console.log('🗑️ Delete record called for:', deletingRecord);
     console.log('🔧 Delete mutation available:', !!deleteMutation.mutateAsync);
     
+    // Check if record has a valid ID
+    if (!deletingRecord.id || deletingRecord.id === '' || deletingRecord.id === null) {
+      console.error('❌ Cannot delete record: Missing or invalid ID');
+      alert('Cannot delete this record: Missing record ID. This may be due to a data sync issue. Please try refreshing the page or contact support.');
+      setShowDeleteConfirm(false);
+      setDeletingRecord(null);
+      return;
+    }
+    
     try {
       console.log('🚀 Calling delete mutation...');
       await deleteMutation.mutateAsync(deletingRecord.id);
