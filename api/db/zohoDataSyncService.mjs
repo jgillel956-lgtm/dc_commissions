@@ -12,6 +12,7 @@ const TABLE_IDS = {
   'insurance_companies_DC': '2103833000004379120',
   'vendor_costs_DC': '2103833000016817002',
   'payment_modalities': '2103833000011978002',
+  'payment_type_DC': '2103833000011978002', // Maps to same table as payment_modalities
   'revenue_master_view': '2103833000016814601'
 };
 
@@ -196,7 +197,19 @@ const dataTransformers = {
     });
     
     return {
-      id: parseInt(row.id) || null,
+      id: parseInt(row.id) || parseInt(row.ROWID) || parseInt(row.rowid) || null,
+      payment_method: row.payment_method || null,
+      description: row.description || null,
+      active: row.active === 'TRUE' || row.active === true || row.active === 'true',
+      created_at: safeParseDate(row.created_at),
+      updated_at: safeParseDate(row.updated_at)
+    };
+  },
+
+  // payment_type_DC uses the same transformer as payment_modalities (same table)
+  payment_type_DC: (row) => {
+    return {
+      id: parseInt(row.id) || parseInt(row.ROWID) || parseInt(row.rowid) || null,
       payment_method: row.payment_method || null,
       description: row.description || null,
       active: row.active === 'TRUE' || row.active === true || row.active === 'true',

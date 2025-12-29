@@ -38,6 +38,7 @@ const TABLE_IDS = {
   'insurance_companies_DC': '2103833000004379120',
   'vendor_costs_DC': '2103833000016817002',
   'payment_modalities': '2103833000011978002',
+  'payment_type_DC': '2103833000011978002', // Maps to same table as payment_modalities
   'revenue_master_view': '2103833000016814601' // Revenue master view ID provided by user
 };
 
