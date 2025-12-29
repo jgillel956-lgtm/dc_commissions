@@ -176,7 +176,12 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const handleEditClick = useCallback((record: any) => {
     console.log('🔍 Edit clicked - Full record structure:', record);
     console.log('🆔 Record ID:', record.id, 'Type:', typeof record.id);
+    console.log('🔑 ROWID:', record.ROWID, 'Type:', typeof record.ROWID);
     console.log('📋 Record keys:', Object.keys(record));
+    console.log('📊 All record values:');
+    Object.keys(record).forEach(key => {
+      console.log(`  ${key}: ${record[key]} (${typeof record[key]})`);
+    });
     
     setEditingRecord(record);
     setShowEditModal(true);
