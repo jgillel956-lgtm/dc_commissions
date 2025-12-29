@@ -52,7 +52,7 @@ function safeParseDate(dateString) {
 // Data transformation functions for each table
 const dataTransformers = {
   company_upcharge_fees_DC: (row) => ({
-    id: parseInt(row.id) || null,
+    id: parseInt(row.id) || parseInt(row.ROWID) || parseInt(row.rowid) || null,
     company_id: parseInt(row.company_id) || null,
     payment_method_id: parseInt(row.payment_method_id) || null,
     base_fee_upcharge: parseFloat(row.base_fee_upcharge) || null,
@@ -152,7 +152,7 @@ const dataTransformers = {
   }),
 
   monthly_interchange_income_DC: (row) => ({
-    id: parseInt(row.id) || null,
+    id: parseInt(row.id) || parseInt(row.ROWID) || parseInt(row.rowid) || null,
     company_id: parseInt(row.company_id) || null,
     interchange_company: row.interchange_company || null,
     interchange_amount: row.interchange_amount || null, // Keep as string for formatted currency
@@ -170,7 +170,7 @@ const dataTransformers = {
   }),
 
   monthly_interest_revenue_DC: (row) => ({
-    id: parseInt(row.id) || null,
+    id: parseInt(row.id) || parseInt(row.ROWID) || parseInt(row.rowid) || null,
     company_id: parseInt(row.company_id) || null,
     interest_period_start: safeParseDate(row.interest_period_start),
     interest_period_end: safeParseDate(row.interest_period_end),

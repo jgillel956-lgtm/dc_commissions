@@ -145,6 +145,13 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
     console.log('📝 Editing record:', editingRecord);
     console.log('🔧 Update mutation available:', !!update.mutateAsync);
     
+    // Check if record has a valid ID
+    if (!editingRecord.id || editingRecord.id === '' || editingRecord.id === null) {
+      console.error('❌ Cannot edit record: Missing or invalid ID');
+      alert('Cannot edit this record: Missing record ID. This may be due to a data sync issue. Please try refreshing the page or contact support.');
+      return;
+    }
+    
     try {
       console.log('🚀 Calling update mutation...');
       await update.mutateAsync({ id: editingRecord.id, data: values, oldData: editingRecord });
