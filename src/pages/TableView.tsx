@@ -143,17 +143,26 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   const handleEditRecord = useCallback(async (values: any) => {
     console.log('🔄 Edit record called with values:', values);
     console.log('📝 Editing record:', editingRecord);
+    console.log('🆔 Edit record ID:', editingRecord?.id, 'Type:', typeof editingRecord?.id);
     console.log('🔧 Update mutation available:', !!update.mutateAsync);
     
     // Check if record has a valid ID
-    if (!editingRecord.id || editingRecord.id === '' || editingRecord.id === null) {
+    if (!editingRecord.id || editingRecord.id === '' || editingRecord.id === null || editingRecord.id === undefined) {
       console.error('❌ Cannot edit record: Missing or invalid ID');
       alert('Cannot edit this record: Missing record ID. This may be due to a data sync issue. Please try refreshing the page or contact support.');
       return;
     }
     
+    // Additional check for numeric ID
+    const numericId = parseInt(editingRecord.id);
+    if (isNaN(numericId) || numericId <= 0) {
+      console.error('❌ Cannot edit record: Invalid numeric ID:', editingRecord.id);
+      alert('Cannot edit this record: Invalid record ID format. This may be due to a data sync issue. Please try refreshing the page or contact support.');
+      return;
+    }
+    
     try {
-      console.log('🚀 Calling update mutation...');
+      console.log('🚀 Calling update mutation with ID:', editingRecord.id);
       await update.mutateAsync({ id: editingRecord.id, data: values, oldData: editingRecord });
       console.log('✅ Update successful, closing modal');
       setShowEditModal(false);
@@ -166,10 +175,11 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
   // Handle delete record
   const handleDeleteRecord = useCallback(async () => {
     console.log('🗑️ Delete record called for:', deletingRecord);
+    console.log('🆔 Delete record ID:', deletingRecord?.id, 'Type:', typeof deletingRecord?.id);
     console.log('🔧 Delete mutation available:', !!deleteMutation.mutateAsync);
     
     // Check if record has a valid ID
-    if (!deletingRecord.id || deletingRecord.id === '' || deletingRecord.id === null) {
+    if (!deletingRecord.id || deletingRecord.id === '' || deletingRecord.id === null || deletingRecord.id === undefined) {
       console.error('❌ Cannot delete record: Missing or invalid ID');
       alert('Cannot delete this record: Missing record ID. This may be due to a data sync issue. Please try refreshing the page or contact support.');
       setShowDeleteConfirm(false);
@@ -177,8 +187,18 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
       return;
     }
     
+    // Additional check for numeric ID
+    const numericId = parseInt(deletingRecord.id);
+    if (isNaN(numericId) || numericId <= 0) {
+      console.error('❌ Cannot delete record: Invalid numeric ID:', deletingRecord.id);
+      alert('Cannot delete this record: Invalid record ID format. This may be due to a data sync issue. Please try refreshing the page or contact support.');
+      setShowDeleteConfirm(false);
+      setDeletingRecord(null);
+      return;
+    }
+    
     try {
-      console.log('🚀 Calling delete mutation...');
+      console.log('🚀 Calling delete mutation with ID:', deletingRecord.id);
       await deleteMutation.mutateAsync(deletingRecord.id);
       console.log('✅ Delete successful, closing modal');
       setShowDeleteConfirm(false);
