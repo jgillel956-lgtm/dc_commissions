@@ -141,23 +141,34 @@ const TableView: React.FC<TableViewProps> = ({ activeTable }) => {
 
   // Handle edit record
   const handleEditRecord = useCallback(async (values: any) => {
+    console.log('🔄 Edit record called with values:', values);
+    console.log('📝 Editing record:', editingRecord);
+    console.log('🔧 Update mutation available:', !!update.mutateAsync);
+    
     try {
+      console.log('🚀 Calling update mutation...');
       await update.mutateAsync({ id: editingRecord.id, data: values, oldData: editingRecord });
+      console.log('✅ Update successful, closing modal');
       setShowEditModal(false);
       setEditingRecord(null);
     } catch (error) {
-      console.error('Error updating record:', error);
+      console.error('❌ Error updating record:', error);
     }
   }, [update, editingRecord]);
 
   // Handle delete record
   const handleDeleteRecord = useCallback(async () => {
+    console.log('🗑️ Delete record called for:', deletingRecord);
+    console.log('🔧 Delete mutation available:', !!deleteMutation.mutateAsync);
+    
     try {
+      console.log('🚀 Calling delete mutation...');
       await deleteMutation.mutateAsync(deletingRecord.id);
+      console.log('✅ Delete successful, closing modal');
       setShowDeleteConfirm(false);
       setDeletingRecord(null);
     } catch (error) {
-      console.error('Error deleting record:', error);
+      console.error('❌ Error deleting record:', error);
     }
   }, [deleteMutation, deletingRecord]);
 

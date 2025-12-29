@@ -58,10 +58,14 @@ const EditRecordForm: React.FC<EditRecordFormProps> = ({
     }, {} as Record<string, any>),
     validationSchema,
     onSubmit: async (values: any) => {
+      console.log('📝 EditRecordForm onSubmit called with values:', values);
+      console.log('🔄 Original record:', record);
       try {
+        console.log('🚀 Calling parent onSubmit...');
         await onSubmit(values);
+        console.log('✅ Parent onSubmit completed successfully');
       } catch (error) {
-        console.error('Error updating record:', error);
+        console.error('❌ Error in EditRecordForm onSubmit:', error);
       }
     },
   });
