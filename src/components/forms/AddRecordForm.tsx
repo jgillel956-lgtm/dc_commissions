@@ -60,14 +60,37 @@ const AddRecordForm: React.FC<AddRecordFormProps> = ({
   // Auto-fill Interest Period End for Monthly Interest Revenue
   useEffect(() => {
     if (tableConfig.tableName === 'monthly_interest_revenue_DC' && formik.values.interest_period_start) {
-      const startDate = new Date(formik.values.interest_period_start);
+      const startDateValue = formik.values.interest_period_start;
+      
+      // Handle different date formats more reliably
+      let startDate;
+      if (typeof startDateValue === 'string') {
+        // If it's in YYYY-MM-DD format, parse it directly
+        if (startDateValue.includes('-')) {
+          startDate = new Date(startDateValue + 'T00:00:00');
+        } else {
+          // Handle MM/DD/YYYY format
+          startDate = new Date(startDateValue);
+        }
+      } else {
+        startDate = new Date(startDateValue);
+      }
+      
       if (!isNaN(startDate.getTime())) {
-        // Get the last day of the same month
-        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        console.log('Start date parsed:', startDate.toISOString(), 'Month:', startDate.getMonth(), 'Year:', startDate.getFullYear());
+        
+        // Get the last day of the same month as the start date
+        const year = startDate.getFullYear();
+        const month = startDate.getMonth(); // 0-based (0 = January, 10 = November)
+        const endDate = new Date(year, month + 1, 0); // Last day of the current month
+        
+        console.log('End date calculated:', endDate.toISOString(), 'Month:', endDate.getMonth());
+        
         const formattedEndDate = endDate.toISOString().split('T')[0]; // YYYY-MM-DD format
         
         // Only update if the end date is different to avoid infinite loops
         if (formik.values.interest_period_end !== formattedEndDate) {
+          console.log('Setting end date to:', formattedEndDate);
           formik.setFieldValue('interest_period_end', formattedEndDate);
         }
       }
