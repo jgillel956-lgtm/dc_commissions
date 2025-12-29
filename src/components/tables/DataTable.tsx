@@ -72,34 +72,30 @@ const DataTable: React.FC<DataTableProps> = ({
     setSelectedRows(newSelected);
   };
 
-  const formatCellValue = useMemo(() => (value: any, field: string) => {
-    // Minimal debug logging for lookup fields
-    if ((field === 'payment_method_id' || field === 'company_id') && value && !lookupData[field === 'company_id' ? 'companies' : 'paymentMethods']?.length) {
-      console.log('Lookup data not ready for ' + field + ' (value: ' + value + ')');
+  const formatCellValue = useMemo(() => (value: any, field: string, record?: any) => {
+    // Handle lookup fields for all tables
+    if ((field === 'payment_method_id' || field === 'payment_method_name') && lookupData.paymentMethods) {
+      // For payment_method_name display column, get the ID from payment_method_id field
+      const idValue = field === 'payment_method_name' ? record?.payment_method_id : value;
+      if (idValue) {
+        const paymentMethod = lookupData.paymentMethods?.find((method: any) => method.id.toString() === idValue.toString());
+        if (paymentMethod) {
+          return paymentMethod.payment_method;
+        }
+      }
+      return value || '-';
     }
     
-    // Handle lookup fields for all tables
-    if (field === 'payment_method_id' && value && lookupData.paymentMethods) {
-      const paymentMethod = lookupData.paymentMethods?.find((method: any) => method.id.toString() === value.toString());
-      console.log('Payment method lookup for ID ' + value + ':');
-      if (paymentMethod) {
-        console.log('Found: ' + paymentMethod.payment_method);
-        return paymentMethod.payment_method;
-      } else {
-        console.log('Not found - returning ID: ' + value);
-        return value || '-';
+    if ((field === 'company_id' || field === 'company_name') && lookupData.companies) {
+      // For company_name display column, get the ID from company_id field
+      const idValue = field === 'company_name' ? record?.company_id : value;
+      if (idValue) {
+        const company = lookupData.companies?.find((company: any) => company.id.toString() === idValue.toString());
+        if (company) {
+          return company.company;
+        }
       }
-    }
-    if (field === 'company_id' && value && lookupData.companies) {
-      const company = lookupData.companies?.find((company: any) => company.id.toString() === value.toString());
-      console.log('Company lookup for ID ' + value + ':');
-      if (company) {
-        console.log('Found: ' + company.company);
-        return company.company;
-      } else {
-        console.log('Not found - returning ID: ' + value);
-        return value || '-';
-      }
+      return value || '-';
     }
 
     const formatter = columnFormatters[field];
@@ -107,7 +103,7 @@ const DataTable: React.FC<DataTableProps> = ({
       return formatter(value);
     }
     return value || '-';
-  }, [lookupData.companies, lookupData.paymentMethods, tableConfig.tableName]);
+  }, [lookupData.companies, lookupData.paymentMethods]);
 
   const getStatusClass = (status: string) => {
     return statusColors[status as keyof typeof statusColors] || 'status-active';
@@ -191,7 +187,7 @@ const DataTable: React.FC<DataTableProps> = ({
                       </span>
                     ) : (
                       <span className="text-slate-900">
-                        {formatCellValue(record[column], column)}
+                        {formatCellValue(record[column], column, record)}
                       </span>
                     )}
                   </td>
